@@ -12,7 +12,8 @@ public class EnemyHealth : MonoBehaviour, IDamageable, ITargetable, ILootable
     
     [Header("Loot Settings - Enemy Drops (2x Value)")]
     public LootData[] possibleLoot;
-    public float lootDropChance = 0.8f; // 80% chance to drop loot
+    public float lootDropChance = 0.9f;
+    private LootManager lootManager;
     
     private bool isDead = false;
     
@@ -41,7 +42,6 @@ public class EnemyHealth : MonoBehaviour, IDamageable, ITargetable, ILootable
     {
         isDead = true;
         
-        // Drop loot before dying
         DropLoot();
         
         // Death effects
@@ -88,32 +88,97 @@ public class EnemyHealth : MonoBehaviour, IDamageable, ITargetable, ILootable
     
     private void DropLoot()
     {
-        // Check if enemy drops loot
-        if (Random.Range(0f, 1f) <= lootDropChance)
+        Debug.Log($"=== DROP LOOT STARTED for {gameObject.name} ===");
+        
+        // Check drop chance
+        float roll = Random.Range(0f, 1f);
+        Debug.Log($"Drop chance check: Rolled {roll:F2}, Need <= {lootDropChance}: {(roll <= lootDropChance ? "PASS" : "FAIL")}");
+        
+        if (roll > lootDropChance)
         {
-            LootManager lootManager = FindObjectOfType<LootManager>();
-            if (lootManager != null)
+            Debug.Log("Failed drop chance roll - no loot dropped");
+            return;
+        }
+        
+        // Check LootManager
+        if (lootManager == null)
+        {
+            Debug.LogError("LootManager is null! Cannot drop loot.");
+            lootManager = FindObjectOfType<LootManager>();
+            Debug.Log($"After FindObjectOfType: LootManager = {lootManager != null}");
+            
+            if (lootManager == null)
             {
-                LootData lootToDrop = lootManager.GetRandomLoot();
-                if (lootToDrop != null && lootToDrop.lootPrefab != null)
+                // Try to find it another way
+                GameObject lootManagerObj = GameObject.Find("LootManager");
+                if (lootManagerObj != null)
                 {
-                    Vector3 dropPosition = transform.position + new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), 0);
-                    GameObject droppedLoot = Instantiate(lootToDrop.lootPrefab, dropPosition, Quaternion.identity);
-                    
-                    // Set as enemy drop (2x value)
-                    CollectibleItem collectible = droppedLoot.GetComponent<CollectibleItem>();
-                    if (collectible != null)
-                    {
-                        collectible.lootTier = lootToDrop.lootTier;
-                        collectible.value = lootToDrop.GetCalculatedValue() * 2; // Enemy 2x multiplier
-                        collectible.itemName = lootToDrop.lootName;
-                        collectible.isEnvironmentSpawn = false; // Mark as enemy drop
-                    }
-                    
-                    Debug.Log($"Enemy dropped {lootToDrop.lootTier} {lootToDrop.lootName} worth {collectible.value} coins!");
+                    lootManager = lootManagerObj.GetComponent<LootManager>();
+                    Debug.Log($"Found by name: LootManager = {lootManager != null}");
                 }
             }
+            
+            if (lootManager == null) 
+            {
+                Debug.LogError("STILL no LootManager found! Check if it's in the scene.");
+                return;
+            }
         }
+        
+        Debug.Log($"LootManager found: {lootManager.gameObject.name}");
+        
+        // Get loot data
+        LootData lootData = lootManager.GetRandomLoot();
+        Debug.Log($"GetRandomLoot returned: {(lootData != null ? lootData.lootName : "NULL")}");
+        
+        if (lootData == null)
+        {
+            Debug.LogError("LootManager.GetRandomLoot() returned null!");
+            return;
+        }
+        
+        Debug.Log($"LootData: {lootData.lootName} (Tier: {lootData.lootTier})");
+        Debug.Log($"Loot prefab: {(lootData.lootPrefab != null ? "Exists" : "NULL!")}");
+        
+        if (lootData.lootPrefab == null)
+        {
+            Debug.LogError("LootData.lootPrefab is null! Check LootManager settings.");
+            return;
+        }
+        
+        // Calculate drop position
+        Vector3 dropPosition = transform.position;
+        dropPosition.x += Random.Range(-0.5f, 0.5f);
+        dropPosition.y += Random.Range(-0.5f, 0.5f);
+        
+        Debug.Log($"Instantiating loot at position: {dropPosition}");
+        
+        // Instantiate the loot
+        GameObject lootObject = Instantiate(lootData.lootPrefab, dropPosition, Quaternion.identity);
+        Debug.Log($"Instantiated loot object: {lootObject.name}");
+        
+        // Get CollectibleItem component
+        CollectibleItem collectible = lootObject.GetComponent<CollectibleItem>();
+        Debug.Log($"CollectibleItem component: {(collectible != null ? "Found" : "NOT FOUND")}");
+        
+        if (collectible != null)
+        {
+            int baseValue = lootData.GetCalculatedValue();
+            int enemyValue = baseValue * 2;
+            
+            collectible.lootTier = lootData.lootTier;
+            collectible.value = enemyValue;
+            collectible.itemName = lootData.lootName;
+            collectible.isEnvironmentSpawn = false;
+            
+            Debug.Log($"Configured loot: {collectible.lootTier} {collectible.itemName} worth {collectible.value} coins");
+        }
+        else
+        {
+            Debug.LogError($"Loot prefab {lootData.lootPrefab.name} doesn't have CollectibleItem component!");
+        }
+        
+        Debug.Log($"=== DROP LOOT COMPLETED ===");
     }
     
     private System.Collections.IEnumerator DamageFlash()
