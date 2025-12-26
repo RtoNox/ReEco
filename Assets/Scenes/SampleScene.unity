@@ -286,7 +286,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 200949917}
         m_TargetAssemblyTypeName: BaseTrigger, Assembly-CSharp
-        m_MethodName: OnSellButtonClicked
+        m_MethodName: SellItems
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -447,10 +447,20 @@ MonoBehaviour:
   rareTierUnlockTime: 300
   epicTierUnlockTime: 600
   unlockedTiers: 0
+  defaultPlayerSpeed: 5
+  defaultPlayerHealth: 100
+  defaultPlayerAttack: 10
+  defaultBaseHealth: 500
   OnTierUnlocked:
     m_PersistentCalls:
       m_Calls: []
   OnMinutePassed:
+    m_PersistentCalls:
+      m_Calls: []
+  OnGameReset:
+    m_PersistentCalls:
+      m_Calls: []
+  OnPlayerDied:
     m_PersistentCalls:
       m_Calls: []
 --- !u!4 &86547893
@@ -758,19 +768,15 @@ MonoBehaviour:
   sellValueText: {fileID: 2047703034}
   sellSummaryText: {fileID: 2047703034}
   speedButton: {fileID: 1504973791}
-  speedNameText: {fileID: 2134078835}
   speedLevelText: {fileID: 216352916}
   speedCostText: {fileID: 1184157064}
   healthButton: {fileID: 284214882}
-  healthNameText: {fileID: 1243798359}
   healthLevelText: {fileID: 28013679}
   healthCostText: {fileID: 979050180}
   attackButton: {fileID: 2012607657}
-  attackNameText: {fileID: 1855041868}
   attackLevelText: {fileID: 307328412}
   attackCostText: {fileID: 1820514386}
   baseButton: {fileID: 752390755}
-  baseNameText: {fileID: 1063596153}
   baseLevelText: {fileID: 1068864355}
   baseCostText: {fileID: 1424130341}
   speedIncrease: 0.5
@@ -2493,7 +2499,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1034404356}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 200949917}
+        m_TargetAssemblyTypeName: BaseTrigger, Assembly-CSharp
+        m_MethodName: CloseMenu
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1034404356
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4293,7 +4311,7 @@ MonoBehaviour:
     - enemyPrefab: {fileID: 5860513934180647060, guid: 0ffd48b1139719c44ae56dc9eb1fd90c, type: 3}
       count: 5
       spawnRate: 100
-    waveDuration: 10
+    waveDuration: 10000
     waveTimer: 0
   timeBetweenWaves: 5
   autoStartSpawning: 1
@@ -4569,9 +4587,72 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 62173c22c9b577e4db95f0b414fc1e1a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  commonLoot: []
-  rareLoot: []
-  epicLoot: []
+  commonLoot:
+  - lootName: smol common
+    lootTier: 0
+    minValue: 2
+    maxValue: 3
+    lootPrefab: {fileID: 8332432380374834100, guid: 00fd63672b31d954da16d0ec970604f3, type: 3}
+    dropChance: 30
+    spawnWeight: 3
+  - lootName: medium common
+    lootTier: 0
+    minValue: 3
+    maxValue: 4
+    lootPrefab: {fileID: 7991707358347059081, guid: 0754edb6f018d8a4d947f7176d168b84, type: 3}
+    dropChance: 15
+    spawnWeight: 3
+  - lootName: beeg common
+    lootTier: 0
+    minValue: 5
+    maxValue: 5
+    lootPrefab: {fileID: 523085477944299156, guid: 187fec5497c011146a0ca516f8616003, type: 3}
+    dropChance: 5
+    spawnWeight: 2
+  rareLoot:
+  - lootName: smol rare
+    lootTier: 1
+    minValue: 4
+    maxValue: 5
+    lootPrefab: {fileID: 8332432380374834100, guid: 00fd63672b31d954da16d0ec970604f3, type: 3}
+    dropChance: 20
+    spawnWeight: 2
+  - lootName: medium rare
+    lootTier: 1
+    minValue: 5
+    maxValue: 6
+    lootPrefab: {fileID: 7991707358347059081, guid: 0754edb6f018d8a4d947f7176d168b84, type: 3}
+    dropChance: 10
+    spawnWeight: 2
+  - lootName: beeg rare
+    lootTier: 1
+    minValue: 7
+    maxValue: 7
+    lootPrefab: {fileID: 523085477944299156, guid: 187fec5497c011146a0ca516f8616003, type: 3}
+    dropChance: 5
+    spawnWeight: 2
+  epicLoot:
+  - lootName: smol epic
+    lootTier: 2
+    minValue: 6
+    maxValue: 7
+    lootPrefab: {fileID: 8332432380374834100, guid: 00fd63672b31d954da16d0ec970604f3, type: 3}
+    dropChance: 5
+    spawnWeight: 2
+  - lootName: medium epic
+    lootTier: 2
+    minValue: 8
+    maxValue: 9
+    lootPrefab: {fileID: 7991707358347059081, guid: 0754edb6f018d8a4d947f7176d168b84, type: 3}
+    dropChance: 5
+    spawnWeight: 2
+  - lootName: beeg epic
+    lootTier: 2
+    minValue: 15
+    maxValue: 50
+    lootPrefab: {fileID: 523085477944299156, guid: 187fec5497c011146a0ca516f8616003, type: 3}
+    dropChance: 5
+    spawnWeight: 2
   commonSpawnWeight: 70
   rareSpawnWeight: 25
   epicSpawnWeight: 5

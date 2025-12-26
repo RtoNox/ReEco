@@ -47,8 +47,18 @@ public class PlayerHealth : MonoBehaviour, IDamageable, IHealable, ITargetable
 
     public void Die()
     {
+        if (isDead) return;
         isDead = true;
+        
+        Debug.Log("Player Died!");
         OnDeath?.Invoke();
+        
+        // Notify GameManager
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.PlayerDied();
+        }
+        
         GetComponent<PlayerController>().enabled = false;
         Debug.Log("Player Died!");
     }

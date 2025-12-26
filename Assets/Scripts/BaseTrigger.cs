@@ -10,34 +10,27 @@ public class BaseTrigger : MonoBehaviour
     [Header("UI References")]
     public GameObject upgradePanel;
     public Text coinsText;
-    public Text sellValueText; // This shows total value of items in inventory
-    public Text sellSummaryText; // This shows "Sold X items for Y coins"
+    public Text sellValueText;
+    public Text sellSummaryText;
     
-    [Header("Speed Upgrade")]
+    [Header("Upgrade Buttons")]
     public Button speedButton;
-    public Text speedNameText;
     public Text speedLevelText;
     public Text speedCostText;
     
-    [Header("Health Upgrade")]
     public Button healthButton;
-    public Text healthNameText;
     public Text healthLevelText;
     public Text healthCostText;
     
-    [Header("Attack Upgrade")]
     public Button attackButton;
-    public Text attackNameText;
     public Text attackLevelText;
     public Text attackCostText;
     
-    [Header("Base Health Upgrade")]
     public Button baseButton;
-    public Text baseNameText;
     public Text baseLevelText;
     public Text baseCostText;
     
-    [Header("Upgrade Settings")]
+    [Header("Upgrade Stats")]
     public float speedIncrease = 0.5f;
     public int healthIncrease = 25;
     public int attackIncrease = 5;
@@ -58,25 +51,47 @@ public class BaseTrigger : MonoBehaviour
     private PlayerAttack playerAttack;
     private bool isMenuOpen = false;
     
-    // Upgrade levels
+    // Upgrade levels (RESETS EACH RUN)
     private int speedLevel = 0;
     private int healthLevel = 0;
     private int attackLevel = 0;
     private int baseLevel = 0;
     
-    // Base health
+    // Base stats (RESETS EACH RUN)
     private int baseMaxHealth = 500;
     private int currentBaseHealth = 500;
+    
+    // Player's original stats (to calculate bonuses)
+    private float originalPlayerSpeed = 0f;
+    private int originalPlayerHealth = 0;
+    private int originalPlayerAttack = 0;
 
     void Start()
     {
-        LoadGameData();
+        // RESET everything on start
+        ResetAllUpgrades();
         
+        // Hide UI
         if (upgradePanel != null) upgradePanel.SetActive(false);
         if (interactionHint != null) interactionHint.SetActive(false);
         
-        // Initialize sell value display
-        UpdateSellValueDisplay();
+        Debug.Log("BaseTrigger: All upgrades reset for new run");
+    }
+
+    void ResetAllUpgrades()
+    {
+        // Reset upgrade levels
+        speedLevel = 0;
+        healthLevel = 0;
+        attackLevel = 0;
+        baseLevel = 0;
+        
+        // Reset base health
+        baseMaxHealth = 500;
+        currentBaseHealth = 500;
+        
+        // Store original player stats (when player enters base)
+        // We'll get these when player first interacts with base
     }
 
     void Update()
@@ -105,11 +120,29 @@ public class BaseTrigger : MonoBehaviour
             if (interactionHint != null)
                 interactionHint.SetActive(true);
             
-            // Update sell value display when player enters base
-            UpdateSellValueDisplay();
+            // Store original player stats if not stored yet
+            StoreOriginalPlayerStats();
             
-            // Auto-sell items (if you want this)
-            // SellItems();
+            // Update sell value display
+            UpdateSellValueDisplay();
+        }
+    }
+
+    void StoreOriginalPlayerStats()
+    {
+        if (playerController != null && originalPlayerSpeed == 0)
+        {
+            originalPlayerSpeed = playerController.moveSpeed;
+        }
+        
+        if (playerHealth != null && originalPlayerHealth == 0)
+        {
+            originalPlayerHealth = playerHealth.maxHealth;
+        }
+        
+        if (playerAttack != null && originalPlayerAttack == 0)
+        {
+            originalPlayerAttack = playerAttack.attackDamage;
         }
     }
 
@@ -150,7 +183,7 @@ public class BaseTrigger : MonoBehaviour
         UpdateUI();
     }
 
-    void CloseMenu()
+    public void CloseMenu()
     {
         isMenuOpen = false;
         Time.timeScale = 1f;
@@ -164,81 +197,10 @@ public class BaseTrigger : MonoBehaviour
             interactionHint.SetActive(true);
     }
 
-    // =================== SELL VALUE DISPLAY ===================
-    void UpdateSellValueDisplay()
-    {
-        if (sellValueText == null || playerInventory == null) return;
-        
-        int totalSellValue = CalculateTotalSellValue();
-        sellValueText.text = $"Sell value: {totalSellValue}";
-    }
-    
-    int CalculateTotalSellValue()
-    {
-        int totalValue = 0;
-        
-        // Loop through all inventory slots and sum their totalValue
-        foreach (var slot in playerInventory.inventory)
-        {
-            totalValue += slot.totalValue;
-        }
-        
-        return totalValue;
-    }
-
-    // =================== SELLING SYSTEM ===================
-    public void SellItems()
-    {
-        if (playerInventory == null) return;
-        
-        // Store the total value before selling for the summary
-        int totalSellValue = CalculateTotalSellValue();
-        int itemCount = playerInventory.GetTotalItems();
-        int beforeCoins = playerInventory.coins;
-        
-        if (totalSellValue > 0)
-        {
-            // Call your existing SellAllItems method
-            playerInventory.SellAllItems();
-            
-            int earned = playerInventory.coins - beforeCoins;
-            
-            // Update sell summary
-            if (sellSummaryText != null)
-            {
-                sellSummaryText.text = $"Sold {itemCount} items for {earned} coins!";
-                StartCoroutine(ClearAfterDelay(sellSummaryText, 3f));
-            }
-            
-            Debug.Log($"Sold {itemCount} items worth {totalSellValue} coins. Earned: {earned}");
-            
-            // Update sell value display (should be 0 now)
-            UpdateSellValueDisplay();
-        }
-        else
-        {
-            if (sellSummaryText != null)
-            {
-                sellSummaryText.text = "No items to sell";
-                StartCoroutine(ClearAfterDelay(sellSummaryText, 2f));
-            }
-        }
-        
-        // Update coins display
-        UpdateUI();
-    }
-    
-    System.Collections.IEnumerator ClearAfterDelay(Text text, float delay)
-    {
-        yield return new WaitForSecondsRealtime(delay);
-        if (text != null)
-            text.text = "";
-    }
-
     // =================== UPGRADE SYSTEM ===================
     void UpdateUI()
     {
-        // Update coins display
+        // Update coins
         if (coinsText != null && playerInventory != null)
             coinsText.text = $"Coins: {playerInventory.coins}";
         
@@ -278,7 +240,7 @@ public class BaseTrigger : MonoBehaviour
             attackButton.onClick.AddListener(() => BuyUpgrade(2, attackCost));
         }
         
-        // Update Base Health UI
+        // Update Base UI
         if (baseLevelText != null) baseLevelText.text = $"Lv.{baseLevel}";
         if (baseCostText != null) baseCostText.text = $"{baseCost}";
         if (baseButton != null) 
@@ -311,8 +273,9 @@ public class BaseTrigger : MonoBehaviour
                 speedLevel++;
                 if (playerController != null)
                 {
-                    playerController.moveSpeed += speedIncrease;
-                    Debug.Log($"Speed Lv.{speedLevel}: {playerController.moveSpeed:F1}");
+                    // Reset to original + bonuses
+                    playerController.moveSpeed = originalPlayerSpeed + (speedLevel * speedIncrease);
+                    Debug.Log($"Speed Lv.{speedLevel}: {playerController.moveSpeed:F1} (+{speedIncrease})");
                 }
                 break;
                 
@@ -320,9 +283,9 @@ public class BaseTrigger : MonoBehaviour
                 healthLevel++;
                 if (playerHealth != null)
                 {
-                    playerHealth.maxHealth += healthIncrease;
+                    playerHealth.maxHealth = originalPlayerHealth + (healthLevel * healthIncrease);
                     playerHealth.Heal(healthIncrease);
-                    Debug.Log($"Health Lv.{healthLevel}: {playerHealth.maxHealth}");
+                    Debug.Log($"Health Lv.{healthLevel}: {playerHealth.maxHealth} (+{healthIncrease})");
                 }
                 break;
                 
@@ -330,8 +293,8 @@ public class BaseTrigger : MonoBehaviour
                 attackLevel++;
                 if (playerAttack != null)
                 {
-                    playerAttack.attackDamage += attackIncrease;
-                    Debug.Log($"Attack Lv.{attackLevel}: {playerAttack.attackDamage}");
+                    playerAttack.attackDamage = originalPlayerAttack + (attackLevel * attackIncrease);
+                    Debug.Log($"Attack Lv.{attackLevel}: {playerAttack.attackDamage} (+{attackIncrease})");
                 }
                 break;
                 
@@ -339,60 +302,85 @@ public class BaseTrigger : MonoBehaviour
                 baseLevel++;
                 baseMaxHealth += baseHealthIncrease;
                 currentBaseHealth += baseHealthIncrease;
-                Debug.Log($"Base Health Lv.{baseLevel}: {baseMaxHealth}");
+                Debug.Log($"Base Health Lv.{baseLevel}: {baseMaxHealth} (+{baseHealthIncrease})");
                 break;
         }
         
-        SaveGameData();
         UpdateUI();
     }
 
-    // =================== SAVE/LOAD ===================
-    void LoadGameData()
+    // =================== RESET FOR NEW RUN ===================
+    // Call this when player dies or new run starts
+    public void ResetForNewRun()
     {
-        speedLevel = PlayerPrefs.GetInt("SpeedLevel", 0);
-        healthLevel = PlayerPrefs.GetInt("HealthLevel", 0);
-        attackLevel = PlayerPrefs.GetInt("AttackLevel", 0);
-        baseLevel = PlayerPrefs.GetInt("BaseLevel", 0);
+        Debug.Log($"Resetting {gameObject.name} for new run");
         
-        baseMaxHealth = PlayerPrefs.GetInt("BaseMaxHealth", 500);
-        currentBaseHealth = PlayerPrefs.GetInt("CurrentBaseHealth", baseMaxHealth);
+        // Reset upgrade levels
+        speedLevel = 0;
+        healthLevel = 0;
+        attackLevel = 0;
+        baseLevel = 0;
+        
+        // Reset base health
+        baseMaxHealth = 500;
+        currentBaseHealth = 500;
+        
+        // Reset original stats (will be recaptured when player enters)
+        originalPlayerSpeed = 0f;
+        originalPlayerHealth = 0;
+        originalPlayerAttack = 0;
+        
+        // Update UI if menu is open
+        if (isMenuOpen)
+        {
+            UpdateUI();
+        }
+    }
+    // =================== OTHER METHODS ===================
+    void UpdateSellValueDisplay()
+    {
+        if (sellValueText == null || playerInventory == null) return;
+        
+        int totalValue = 0;
+        foreach (var slot in playerInventory.inventory)
+        {
+            totalValue += slot.totalValue;
+        }
+        
+        sellValueText.text = $"Sell value: {totalValue}";
     }
 
-    void SaveGameData()
+    public void SellItems()
     {
-        PlayerPrefs.SetInt("SpeedLevel", speedLevel);
-        PlayerPrefs.SetInt("HealthLevel", healthLevel);
-        PlayerPrefs.SetInt("AttackLevel", attackLevel);
-        PlayerPrefs.SetInt("BaseLevel", baseLevel);
+        if (playerInventory == null) return;
         
-        PlayerPrefs.SetInt("BaseMaxHealth", baseMaxHealth);
-        PlayerPrefs.SetInt("CurrentBaseHealth", currentBaseHealth);
+        int totalValue = 0;
+        foreach (var slot in playerInventory.inventory)
+        {
+            totalValue += slot.totalValue;
+        }
         
-        PlayerPrefs.Save();
+        if (totalValue > 0)
+        {
+            playerInventory.SellAllItems();
+            
+            if (sellSummaryText != null)
+            {
+                sellSummaryText.text = $"Sold items for {totalValue} coins!";
+                StartCoroutine(ClearAfterDelay(sellSummaryText, 3f));
+            }
+            
+            UpdateSellValueDisplay();
+            UpdateUI();
+        }
     }
 
-    // =================== PUBLIC METHODS ===================
-    public void TakeBaseDamage(int damage)
+    System.Collections.IEnumerator ClearAfterDelay(Text text, float delay)
     {
-        currentBaseHealth -= damage;
-        currentBaseHealth = Mathf.Max(0, currentBaseHealth);
-        
-        if (currentBaseHealth <= 0)
-            BaseDestroyed();
-        
-        PlayerPrefs.SetInt("CurrentBaseHealth", currentBaseHealth);
-        PlayerPrefs.Save();
+        yield return new WaitForSecondsRealtime(delay);
+        if (text != null)
+            text.text = "";
     }
 
-    void BaseDestroyed()
-    {
-        Debug.Log("Base destroyed!");
-    }
     
-    // Call this from a Sell Button in your UI
-    public void OnSellButtonClicked()
-    {
-        SellItems();
-    }
 }
