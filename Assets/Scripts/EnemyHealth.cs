@@ -13,13 +13,17 @@ public class EnemyHealth : MonoBehaviour, IDamageable, ITargetable, ILootable
     [Header("Loot Settings - Enemy Drops (2x Value)")]
     public LootData[] possibleLoot;
     public float lootDropChance = 0.9f;
-    private LootManager lootManager;
+    public LootManager lootManager;
     
     private bool isDead = false;
     
     void Start()
     {
         currentHealth = maxHealth;
+        if (lootManager == null)
+        {
+            lootManager = FindObjectOfType<LootManager>();
+        }
     }
     
     // IDamageable implementation
@@ -90,7 +94,6 @@ public class EnemyHealth : MonoBehaviour, IDamageable, ITargetable, ILootable
     {
         Debug.Log($"=== DROP LOOT STARTED for {gameObject.name} ===");
         
-        // Check drop chance
         float roll = Random.Range(0f, 1f);
         Debug.Log($"Drop chance check: Rolled {roll:F2}, Need <= {lootDropChance}: {(roll <= lootDropChance ? "PASS" : "FAIL")}");
         
@@ -100,7 +103,6 @@ public class EnemyHealth : MonoBehaviour, IDamageable, ITargetable, ILootable
             return;
         }
         
-        // Check LootManager
         if (lootManager == null)
         {
             Debug.LogError("LootManager is null! Cannot drop loot.");
