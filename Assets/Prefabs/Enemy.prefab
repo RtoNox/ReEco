@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 9108370924812825318}
   - component: {fileID: 2068649149532763556}
   - component: {fileID: -219322437134958119}
+  - component: {fileID: -7309150922745355807}
   m_Layer: 6
   m_Name: Enemy
   m_TagString: Enemy
@@ -220,3 +221,84 @@ CircleCollider2D:
   m_Offset: {x: 0, y: 0}
   serializedVersion: 2
   m_Radius: 0.5
+--- !u!114 &-7309150922745355807
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5860513934180647060}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62173c22c9b577e4db95f0b414fc1e1a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  commonLoot:
+  - lootName: smol trash
+    lootTier: 0
+    minValue: 2
+    maxValue: 3
+    lootPrefab: {fileID: 8332432380374834100, guid: 00fd63672b31d954da16d0ec970604f3, type: 3}
+    dropChance: 50
+    spawnWeight: 3
+  - lootName: medium trash
+    lootTier: 0
+    minValue: 3
+    maxValue: 4
+    lootPrefab: {fileID: 7991707358347059081, guid: 0754edb6f018d8a4d947f7176d168b84, type: 3}
+    dropChance: 25
+    spawnWeight: 3
+  - lootName: beeg trash
+    lootTier: 0
+    minValue: 5
+    maxValue: 5
+    lootPrefab: {fileID: 523085477944299156, guid: 187fec5497c011146a0ca516f8616003, type: 3}
+    dropChance: 15
+    spawnWeight: 2
+  rareLoot:
+  - lootName: smol rare
+    lootTier: 1
+    minValue: 4
+    maxValue: 5
+    lootPrefab: {fileID: 8332432380374834100, guid: 00fd63672b31d954da16d0ec970604f3, type: 3}
+    dropChance: 40
+    spawnWeight: 2
+  - lootName: medium rare
+    lootTier: 1
+    minValue: 5
+    maxValue: 6
+    lootPrefab: {fileID: 7991707358347059081, guid: 0754edb6f018d8a4d947f7176d168b84, type: 3}
+    dropChance: 35
+    spawnWeight: 2
+  - lootName: beeg rare
+    lootTier: 1
+    minValue: 7
+    maxValue: 7
+    lootPrefab: {fileID: 523085477944299156, guid: 187fec5497c011146a0ca516f8616003, type: 3}
+    dropChance: 25
+    spawnWeight: 2
+  epicLoot:
+  - lootName: smol epic
+    lootTier: 2
+    minValue: 6
+    maxValue: 7
+    lootPrefab: {fileID: 8332432380374834100, guid: 00fd63672b31d954da16d0ec970604f3, type: 3}
+    dropChance: 40
+    spawnWeight: 2
+  - lootName: medium epic
+    lootTier: 2
+    minValue: 8
+    maxValue: 9
+    lootPrefab: {fileID: 7991707358347059081, guid: 0754edb6f018d8a4d947f7176d168b84, type: 3}
+    dropChance: 35
+    spawnWeight: 2
+  - lootName: beeg epic
+    lootTier: 2
+    minValue: 15
+    maxValue: 50
+    lootPrefab: {fileID: 523085477944299156, guid: 187fec5497c011146a0ca516f8616003, type: 3}
+    dropChance: 25
+    spawnWeight: 2
+  commonSpawnWeight: 60
+  rareSpawnWeight: 25
+  epicSpawnWeight: 15
