@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections;
 
 public class BaseTrigger : MonoBehaviour
 {
@@ -30,6 +31,10 @@ public class BaseTrigger : MonoBehaviour
     public Text baseLevelText;
     public Text baseCostText;
     
+    [Header("Base Health System")]
+    public BaseHealth baseHealth; // Reference to the BaseHealth component
+    public Text baseHealthText; // UI text to show base health
+    
     [Header("Upgrade Stats")]
     public float speedIncrease = 0.5f;
     public int healthIncrease = 25;
@@ -57,10 +62,6 @@ public class BaseTrigger : MonoBehaviour
     private int attackLevel = 0;
     private int baseLevel = 0;
     
-    // Base stats (RESETS EACH RUN)
-    private int baseMaxHealth = 500;
-    private int currentBaseHealth = 500;
-    
     // Player's original stats (to calculate bonuses)
     private float originalPlayerSpeed = 0f;
     private int originalPlayerHealth = 0;
@@ -75,7 +76,16 @@ public class BaseTrigger : MonoBehaviour
         if (upgradePanel != null) upgradePanel.SetActive(false);
         if (interactionHint != null) interactionHint.SetActive(false);
         
+        // Get BaseHealth component if not assigned
+        if (baseHealth == null)
+        {
+            baseHealth = GetComponent<BaseHealth>();
+        }
+        
         Debug.Log("BaseTrigger: All upgrades reset for new run");
+        
+        // Start coroutine to update base health UI
+        StartCoroutine(UpdateBaseHealthUICoroutine());
     }
 
     void ResetAllUpgrades()
@@ -86,9 +96,11 @@ public class BaseTrigger : MonoBehaviour
         attackLevel = 0;
         baseLevel = 0;
         
-        // Reset base health
-        baseMaxHealth = 500;
-        currentBaseHealth = 500;
+        // Reset base health through BaseHealth component
+        if (baseHealth != null)
+        {
+            baseHealth.ResetBaseHealth();
+        }
         
         // Store original player stats (when player enters base)
         // We'll get these when player first interacts with base
@@ -125,6 +137,9 @@ public class BaseTrigger : MonoBehaviour
             
             // Update sell value display
             UpdateSellValueDisplay();
+            
+            // Update base health display
+            UpdateBaseHealthUI();
         }
     }
 
@@ -181,6 +196,7 @@ public class BaseTrigger : MonoBehaviour
             playerController.enabled = false;
         
         UpdateUI();
+        UpdateBaseHealthUI();
     }
 
     public void CloseMenu()
@@ -249,6 +265,9 @@ public class BaseTrigger : MonoBehaviour
             baseButton.onClick.RemoveAllListeners();
             baseButton.onClick.AddListener(() => BuyUpgrade(3, baseCost));
         }
+        
+        // Update base health display
+        UpdateBaseHealthUI();
     }
 
     int CalculateCost(int baseCost, int level)
@@ -300,13 +319,46 @@ public class BaseTrigger : MonoBehaviour
                 
             case 3: // Base Health
                 baseLevel++;
-                baseMaxHealth += baseHealthIncrease;
-                currentBaseHealth += baseHealthIncrease;
-                Debug.Log($"Base Health Lv.{baseLevel}: {baseMaxHealth} (+{baseHealthIncrease})");
+                if (baseHealth != null)
+                {
+                    baseHealth.IncreaseMaxHealth(baseHealthIncrease);
+                    Debug.Log($"Base Health Lv.{baseLevel}: {baseHealth.maxHealth} (+{baseHealthIncrease})");
+                }
                 break;
         }
         
         UpdateUI();
+    }
+
+    // =================== BASE HEALTH UI ===================
+    void UpdateBaseHealthUI()
+    {
+        if (baseHealthText != null && baseHealth != null)
+        {
+            baseHealthText.text = $"Base Health: {baseHealth.currentHealth}/{baseHealth.maxHealth}";
+            
+            // Color code based on health percentage
+            float healthPercent = (float)baseHealth.currentHealth / baseHealth.maxHealth;
+            if (healthPercent > 0.6f)
+                baseHealthText.color = Color.green;
+            else if (healthPercent > 0.3f)
+                baseHealthText.color = Color.yellow;
+            else
+                baseHealthText.color = Color.red;
+        }
+    }
+    
+    IEnumerator UpdateBaseHealthUICoroutine()
+    {
+        while (true)
+        {
+            yield return new WaitForSeconds(0.5f); // Update every 0.5 seconds
+            
+            if (baseHealth != null && (playerInRange || isMenuOpen))
+            {
+                UpdateBaseHealthUI();
+            }
+        }
     }
 
     // =================== RESET FOR NEW RUN ===================
@@ -322,8 +374,10 @@ public class BaseTrigger : MonoBehaviour
         baseLevel = 0;
         
         // Reset base health
-        baseMaxHealth = 500;
-        currentBaseHealth = 500;
+        if (baseHealth != null)
+        {
+            baseHealth.ResetBaseHealth();
+        }
         
         // Reset original stats (will be recaptured when player enters)
         originalPlayerSpeed = 0f;
@@ -334,8 +388,42 @@ public class BaseTrigger : MonoBehaviour
         if (isMenuOpen)
         {
             UpdateUI();
+            UpdateBaseHealthUI();
         }
     }
+    
+    // =================== BASE DAMAGE HANDLING ===================
+    // These methods can be called by enemies to damage the base
+    
+    public void DamageBase(int damage)
+    {
+        if (baseHealth != null)
+        {
+            baseHealth.TakeDamage(damage);
+            UpdateBaseHealthUI();
+        }
+    }
+    
+    public bool IsBaseAlive()
+    {
+        return baseHealth != null && baseHealth.currentHealth > 0;
+    }
+    
+    public Transform GetBaseTransform()
+    {
+        return transform;
+    }
+    
+    public int GetBaseHealth()
+    {
+        return baseHealth != null ? baseHealth.currentHealth : 0;
+    }
+    
+    public int GetBaseMaxHealth()
+    {
+        return baseHealth != null ? baseHealth.maxHealth : 0;
+    }
+
     // =================== OTHER METHODS ===================
     void UpdateSellValueDisplay()
     {
@@ -381,6 +469,4 @@ public class BaseTrigger : MonoBehaviour
         if (text != null)
             text.text = "";
     }
-
-    
 }
