@@ -130,8 +130,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable, IHealable, ITargetable
         if (isDead) return;
         isDead = true;
         
-        Debug.Log("Player Died!");
-        OnDeath?.Invoke();
+        Debug.Log("=== PLAYER DIED ===");
         
         // Update UI to show death
         UpdateHealthUI();
@@ -146,7 +145,12 @@ public class PlayerHealth : MonoBehaviour, IDamageable, IHealable, ITargetable
         // Notify GameManager
         if (GameManager.Instance != null)
         {
+            Debug.Log("Notifying GameManager...");
             GameManager.Instance.PlayerDied();
+        }
+        else
+        {
+            Debug.LogError("GameManager.Instance is NULL!");
         }
         
         // Disable player controller
@@ -159,7 +163,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable, IHealable, ITargetable
         if (pa != null)
             pa.enabled = false;
         
-        Debug.Log("Player Died!");
+        Debug.Log("Player death sequence complete");
     }
 
     public bool IsAlive()

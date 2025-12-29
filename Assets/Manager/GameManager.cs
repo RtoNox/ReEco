@@ -401,8 +401,25 @@ public class GameManager : MonoBehaviour
     
     public void PlayerDied()
     {
-        Debug.Log("Player died! Ending run...");
-        ShowGameOver();
+        Debug.Log("GameManager: PlayerDied called");
+        ShowGameOver("YOU DIED");
+    }
+
+    public void OnBaseDestroyed()
+    {
+        Debug.Log("GameManager: Base destroyed!");
+        ShowGameOver("BASE DESTROYED");
+    }
+
+    void ShowGameOver(string reason)
+    {
+        Debug.Log($"GameManager: Showing Game Over - {reason}");
+        
+        StopGame();
+        UpdateBestTime();
+        OnPlayerDied?.Invoke();
+        
+        Debug.Log("Game Over sequence complete");
     }
     
     IEnumerator ResetAfterDelay(float delay)
@@ -421,12 +438,6 @@ public class GameManager : MonoBehaviour
     public void OnPlayerDeathEvent()
     {
         PlayerDied();
-    }
-    
-    public void OnBaseDestroyed()
-    {
-        Debug.Log("Base destroyed! Game over!");
-        ShowGameOver();
     }
 }
 

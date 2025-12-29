@@ -335,26 +335,35 @@ public class BaseHealth : MonoBehaviour
         
         isDead = true;
         
-        Debug.Log("Base destroyed! Game Over!");
+        Debug.Log("=== BASE DESTROYED ===");
         
+        // Play destruction sound
         if (destroyedSound != null && audioSource != null)
         {
             audioSource.PlayOneShot(destroyedSound);
         }
         
+        // Show destruction animation
         if (animator != null)
         {
             animator.SetTrigger("Destroy");
         }
         
+        // Update UI one last time
         UpdateRegenStatusUI();
         
+        // NOTIFY GAMEMANAGER
         if (GameManager.Instance != null)
         {
+            Debug.Log("Notifying GameManager of base destruction");
             GameManager.Instance.OnBaseDestroyed();
         }
+        else
+        {
+            Debug.LogError("GameManager.Instance is NULL in BaseHealth!");
+        }
         
-        ShowGameOver();
+        Debug.Log("Base death sequence complete");
     }
 
     void ShowGameOver()
