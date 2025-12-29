@@ -2,17 +2,21 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.SceneManagement; // Add this for scene reload
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
     [Header("Game Timer Settings")]
     public float gameTime = 0f;
     public bool isGameRunning = true;
+
+    [Header("UI References")]
+    public GameObject gameOverPanel;
     
     [Header("Tier Unlock Times (in seconds)")]
-    public float rareTierUnlockTime = 300f;    // 5 minutes
-    public float epicTierUnlockTime = 600f;    // 10 minutes
+    public float rareTierUnlockTime = 300f;
+    public float epicTierUnlockTime = 600f;
     
     [Header("Current Unlocked Tiers")]
     public LootTier unlockedTiers = LootTier.Common;
@@ -23,20 +27,24 @@ public class GameManager : MonoBehaviour
     public int defaultPlayerAttack = 10;
     public int defaultBaseHealth = 500;
     
+    [Header("UI References")]
+    public Text timerText; // Assign in inspector - shows survival time
+    public Text gameOverTimeText; // Assign in inspector - shows final time in GameOver panel
+    public Text bestTimeText; // Assign in inspector - shows best time in GameOver panel
+    
     [Header("Events")]
     public UnityEvent<LootTier> OnTierUnlocked;
     public UnityEvent<float> OnMinutePassed;
-    public UnityEvent OnGameReset; // NEW: Event for when game resets
-    public UnityEvent OnPlayerDied; // NEW: Event for player death
+    public UnityEvent OnGameReset;
+    public UnityEvent OnPlayerDied;
     
     private float lastMinute = 0f;
     
-    // NEW: Track run stats
     private int currentRunCoins = 0;
     private int highestRunCoins = 0;
     private float longestRunTime = 0f;
+    private string bestTimeFormatted = "00:00";
     
-    // Singleton pattern for easy access
     public static GameManager Instance { get; private set; }
     
     void Awake()
@@ -51,8 +59,10 @@ public class GameManager : MonoBehaviour
             Destroy(gameObject);
         }
         
-        // Subscribe to scene load to reset game state
         SceneManager.sceneLoaded += OnSceneLoaded;
+        
+        // Load best time from PlayerPrefs
+        LoadBestTime();
     }
     
     void OnDestroy()
@@ -62,13 +72,36 @@ public class GameManager : MonoBehaviour
     
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // When scene loads (including on start), reset game state
         ResetGameState();
+        FindUIReferences();
     }
     
     void Start()
     {
+        FindUIReferences();
         StartGame();
+    }
+    
+    void FindUIReferences()
+    {
+        // Try to find UI references in the scene
+        if (timerText == null)
+        {
+            GameObject timerGO = GameObject.Find("TimerText");
+            if (timerGO != null) timerText = timerGO.GetComponent<Text>();
+        }
+        
+        if (gameOverTimeText == null)
+        {
+            GameObject gameOverTimeGO = GameObject.Find("GameOverTimeText");
+            if (gameOverTimeGO != null) gameOverTimeText = gameOverTimeGO.GetComponent<Text>();
+        }
+        
+        if (bestTimeText == null)
+        {
+            GameObject bestTimeGO = GameObject.Find("BestTimeText");
+            if (bestTimeGO != null) bestTimeText = bestTimeGO.GetComponent<Text>();
+        }
     }
     
     void Update()
@@ -76,9 +109,100 @@ public class GameManager : MonoBehaviour
         if (isGameRunning)
         {
             gameTime += Time.deltaTime;
+            UpdateTimerDisplay();
             CheckTierUnlocks();
             CheckMinutePassed();
         }
+    }
+    
+    // =================== TIMER DISPLAY ===================
+    void UpdateTimerDisplay()
+    {
+        if (timerText != null)
+        {
+            timerText.text = GetFormattedTime();
+            
+            // Optional: Color coding based on time
+            if (gameTime >= epicTierUnlockTime)
+                timerText.color = Color.yellow; // Epic tier
+            else if (gameTime >= rareTierUnlockTime)
+                timerText.color = Color.cyan; // Rare tier
+            else
+                timerText.color = Color.white; // Common tier
+        }
+    }
+    
+    public string GetFormattedTime()
+    {
+        int minutes = Mathf.FloorToInt(gameTime / 60f);
+        int seconds = Mathf.FloorToInt(gameTime % 60f);
+        return string.Format("{0:00}:{1:00}", minutes, seconds);
+    }
+    
+    // =================== GAME OVER HANDLING ===================
+    public void ShowGameOver()
+    {
+        StopGame();
+        UpdateBestTime();
+        UpdateGameOverPanel();
+        OnPlayerDied?.Invoke();
+    }
+    
+    void UpdateBestTime()
+    {
+        if (gameTime > longestRunTime)
+        {
+            longestRunTime = gameTime;
+            bestTimeFormatted = GetFormattedTime();
+            SaveBestTime();
+        }
+    }
+    
+    void UpdateGameOverPanel()
+    {
+        // Update game over panel with final stats
+        if (gameOverTimeText != null)
+        {
+            gameOverTimeText.text = $"Survival Time: {GetFormattedTime()}";
+        }
+        
+        if (bestTimeText != null)
+        {
+            bestTimeText.text = $"Best Time: {bestTimeFormatted}";
+        }
+        
+        // You could also add coins display
+        GameObject coinsTextGO = GameObject.Find("GameOverCoinsText");
+        if (coinsTextGO != null)
+        {
+            Text coinsText = coinsTextGO.GetComponent<Text>();
+            if (coinsText != null)
+            {
+                coinsText.text = $"Coins Collected: {currentRunCoins}";
+            }
+        }
+    }
+    
+    void SaveBestTime()
+    {
+        PlayerPrefs.SetFloat("BestTime", longestRunTime);
+        PlayerPrefs.Save();
+    }
+    
+    void LoadBestTime()
+    {
+        if (PlayerPrefs.HasKey("BestTime"))
+        {
+            longestRunTime = PlayerPrefs.GetFloat("BestTime");
+            bestTimeFormatted = FormatTime(longestRunTime);
+        }
+    }
+    
+    string FormatTime(float timeInSeconds)
+    {
+        int minutes = Mathf.FloorToInt(timeInSeconds / 60f);
+        int seconds = Mathf.FloorToInt(timeInSeconds % 60f);
+        return string.Format("{0:00}:{1:00}", minutes, seconds);
     }
     
     // =================== GAME STATE MANAGEMENT ===================
@@ -89,9 +213,15 @@ public class GameManager : MonoBehaviour
         unlockedTiers = LootTier.Common;
         currentRunCoins = 0;
         
+        // Reset timer display
+        if (timerText != null)
+        {
+            timerText.text = "00:00";
+            timerText.color = Color.white;
+        }
+        
         Debug.Log("Game started - New run initialized");
         
-        // Find and reset base upgrades
         ResetBaseUpgrades();
     }
     
@@ -99,9 +229,11 @@ public class GameManager : MonoBehaviour
     {
         isGameRunning = false;
         
-        // Update run stats
         if (gameTime > longestRunTime)
+        {
             longestRunTime = gameTime;
+            SaveBestTime();
+        }
         
         if (currentRunCoins > highestRunCoins)
             highestRunCoins = currentRunCoins;
@@ -112,26 +244,40 @@ public class GameManager : MonoBehaviour
     {
         Debug.Log("=== RESETTING GAME STATE ===");
         
-        // Reset timer and tiers
+        Time.timeScale = 1f;
+        
         gameTime = 0f;
         unlockedTiers = LootTier.Common;
+        currentRunCoins = 0;
         
-        // Reset PlayerPrefs to clear any saved upgrades
+        if (gameOverPanel != null)
+            gameOverPanel.SetActive(false);
+        
+        isGameRunning = true;
+        
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
+        {
+            PlayerController pc = player.GetComponent<PlayerController>();
+            if (pc != null)
+                pc.enabled = true;
+            
+            PlayerAttack pa = player.GetComponent<PlayerAttack>();
+            if (pa != null)
+                pa.enabled = true;
+        }
+        
         PlayerPrefs.DeleteAll();
         
-        // Find and reset base upgrades
         ResetBaseUpgrades();
         
-        // Reset player stats
         ResetPlayerStats();
         
-        // Clear all collectibles in scene (optional)
         ClearAllLoot();
         
-        // Trigger reset event
         OnGameReset?.Invoke();
         
-        Debug.Log("Game state reset complete");
+        Debug.Log("Game state reset complete - Time scale: " + Time.timeScale);
     }
     
     void ResetBaseUpgrades()
@@ -139,7 +285,6 @@ public class GameManager : MonoBehaviour
         BaseTrigger[] allBases = FindObjectsOfType<BaseTrigger>();
         foreach (BaseTrigger baseTrigger in allBases)
         {
-            // Call reset method if it exists (we'll add this to BaseTrigger)
             System.Reflection.MethodInfo resetMethod = 
                 typeof(BaseTrigger).GetMethod("ResetForNewRun");
             
@@ -199,7 +344,6 @@ public class GameManager : MonoBehaviour
     
     void ClearAllLoot()
     {
-        // Optional: Clear all loot items in scene
         CollectibleItem[] allLoot = FindObjectsOfType<CollectibleItem>();
         foreach (CollectibleItem loot in allLoot)
         {
@@ -228,7 +372,6 @@ public class GameManager : MonoBehaviour
             Debug.Log("RARE tier unlocked!");
         }
         
-        // Trigger event if tier changed
         if (unlockedTiers != previousTier)
         {
             OnTierUnlocked?.Invoke(unlockedTiers);
@@ -250,7 +393,6 @@ public class GameManager : MonoBehaviour
         return unlockedTiers >= tier;
     }
     
-    // =================== COIN TRACKING ===================
     public void AddCoins(int amount)
     {
         currentRunCoins += amount;
@@ -260,11 +402,7 @@ public class GameManager : MonoBehaviour
     public void PlayerDied()
     {
         Debug.Log("Player died! Ending run...");
-        StopGame();
-        OnPlayerDied?.Invoke();
-        
-        // Optional: Automatically reset after delay
-        // StartCoroutine(ResetAfterDelay(3f));
+        ShowGameOver();
     }
     
     IEnumerator ResetAfterDelay(float delay)
@@ -275,26 +413,23 @@ public class GameManager : MonoBehaviour
     }
     
     // =================== PUBLIC METHODS ===================
-    public string GetFormattedTime()
-    {
-        int minutes = Mathf.FloorToInt(gameTime / 60f);
-        int seconds = Mathf.FloorToInt(gameTime % 60f);
-        return string.Format("{0:00}:{1:00}", minutes, seconds);
-    }
-    
     public int GetCurrentRunCoins() => currentRunCoins;
     public int GetHighestRunCoins() => highestRunCoins;
     public float GetLongestRunTime() => longestRunTime;
     public float GetCurrentRunTime() => gameTime;
     
-    // Call this from PlayerHealth when player dies
     public void OnPlayerDeathEvent()
     {
         PlayerDied();
     }
+    
+    public void OnBaseDestroyed()
+    {
+        Debug.Log("Base destroyed! Game over!");
+        ShowGameOver();
+    }
 }
 
-// Extended LootType enum with tiers
 public enum LootTier
 {
     Common = 0,

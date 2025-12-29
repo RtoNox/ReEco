@@ -10,53 +10,208 @@ public class EnemyAI : MonoBehaviour
     public int damage = 10;
     public float attackCooldown = 1f;
     
-    public Transform player;
+    [Header("Base Targeting")]
+    public float baseAttackRange = 1.5f;
+    public int baseDamage = 20;
+    public float baseDetectionRange = 15f; // How far enemy can detect base
+    
+    [Header("Target Switching")]
+    public float playerAggroDuration = 5f; // How long to chase player after being hit
+    public bool showDebugRanges = false;
+    
+    // Target references
+    private Transform player;
+    private Transform baseTarget;
+    private IDamageable currentTarget;
+    private Transform currentTransformTarget;
     private float lastAttackTime;
-    private ITargetable target;
+    
+    // State tracking
+    private float playerAggroTimer = 0f;
+    private bool isAggroOnPlayer = false;
+    private bool baseIsVisible = false;
     
     void Start()
     {
-        player = GameObject.FindGameObjectWithTag("Player").transform;
-        target = player.GetComponent<ITargetable>();
+        // Find player
+        player = GameObject.FindGameObjectWithTag("Player")?.transform;
+        
+        // Find base
+        GameObject baseObj = GameObject.FindGameObjectWithTag("Base");
+        if (baseObj != null)
+        {
+            baseTarget = baseObj.transform;
+        }
+        
+        // Set initial target (will be updated in Update)
+        currentTransformTarget = player;
     }
     
     void Update()
     {
-        if (player == null || target == null || !target.IsTargetable()) return;
-        
-        float distanceToPlayer = Vector2.Distance(transform.position, player.position);
-        
-        if (distanceToPlayer > attackRange)
+        // Update aggro timer
+        if (isAggroOnPlayer)
         {
-            // Move toward player
-            Vector2 direction = (player.position - transform.position).normalized;
+            playerAggroTimer -= Time.deltaTime;
+            if (playerAggroTimer <= 0f)
+            {
+                isAggroOnPlayer = false;
+            }
+        }
+        
+        // Check if base is visible on screen
+        CheckBaseVisibility();
+        
+        // Determine current target based on priority
+        DetermineTarget();
+        
+        // If no valid target, do nothing
+        if (currentTransformTarget == null) return;
+        
+        // Move toward current target
+        float distanceToTarget = Vector2.Distance(transform.position, currentTransformTarget.position);
+        float currentAttackRange = (currentTransformTarget == baseTarget) ? baseAttackRange : attackRange;
+        
+        if (distanceToTarget > currentAttackRange)
+        {
+            // Move toward target
+            Vector2 direction = (currentTransformTarget.position - transform.position).normalized;
             transform.position += (Vector3)direction * moveSpeed * Time.deltaTime;
         }
         else if (Time.time >= lastAttackTime + attackCooldown)
         {
-            // Attack player
-            Attack();
+            // Attack current target
+            AttackCurrentTarget();
             lastAttackTime = Time.time;
         }
     }
     
-    void Attack()
+    void CheckBaseVisibility()
     {
-        IDamageable damageable = player.GetComponent<IDamageable>();
-        if (damageable != null && damageable.IsAlive())
+        baseIsVisible = false;
+        
+        if (baseTarget == null) return;
+        
+        // Check if base is within detection range
+        float distanceToBase = Vector2.Distance(transform.position, baseTarget.position);
+        if (distanceToBase > baseDetectionRange) return;
+        
+        // Check if base is within screen bounds (simplified check)
+        Vector3 screenPoint = Camera.main.WorldToViewportPoint(baseTarget.position);
+        baseIsVisible = (screenPoint.x >= 0 && screenPoint.x <= 1 && 
+                        screenPoint.y >= 0 && screenPoint.y <= 1);
+    }
+    
+    void DetermineTarget()
+    {
+        // Priority 1: Player if aggro is active
+        if (isAggroOnPlayer && player != null)
         {
-            damageable.TakeDamage(damage);
-            Debug.Log("Enemy attacked player!");
+            currentTransformTarget = player;
+            return;
         }
+        
+        // Priority 2: Base if visible on screen
+        if (baseIsVisible && baseTarget != null)
+        {
+            currentTransformTarget = baseTarget;
+            return;
+        }
+        
+        // Priority 3: Default to player
+        currentTransformTarget = player;
+    }
+    
+    void AttackCurrentTarget()
+    {
+        if (currentTransformTarget == player)
+        {
+            // Attack player
+            IDamageable damageable = currentTransformTarget.GetComponent<IDamageable>();
+            if (damageable != null && damageable.IsAlive())
+            {
+                damageable.TakeDamage(damage);
+                Debug.Log("Enemy attacked player!");
+            }
+        }
+        else if (currentTransformTarget == baseTarget)
+        {
+            // Attack base
+            BaseHealth baseHealth = baseTarget.GetComponent<BaseHealth>();
+            if (baseHealth != null)
+            {
+                baseHealth.TakeDamage(baseDamage);
+                Debug.Log("Enemy attacked base!");
+            }
+        }
+    }
+    
+    // Call this when enemy is hit by player
+    public void OnHitByPlayer()
+    {
+        isAggroOnPlayer = true;
+        playerAggroTimer = playerAggroDuration;
+        
+        // Immediately switch to chasing player
+        if (player != null)
+        {
+            currentTransformTarget = player;
+        }
+        
+        Debug.Log("Enemy aggro on player!");
     }
     
     void OnCollisionEnter2D(Collision2D collision)
     {
+        // Check if hit by player attack
+        if (collision.gameObject.CompareTag("PlayerWeapon") || 
+            collision.gameObject.CompareTag("Player"))
+        {
+            OnHitByPlayer();
+        }
+        
+        // Deal damage on collision
         IDamageable damageable = collision.gameObject.GetComponent<IDamageable>();
         if (damageable != null && damageable.IsAlive())
         {
-            // Simple collision damage
-            damageable.TakeDamage(damage / 2);
+            // Determine damage based on target
+            int collisionDamage = (collision.gameObject.CompareTag("Base")) ? baseDamage : damage / 2;
+            damageable.TakeDamage(collisionDamage);
+        }
+    }
+    
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        // Check if hit by player attack (for trigger-based attacks)
+        if (other.CompareTag("PlayerWeapon"))
+        {
+            OnHitByPlayer();
+        }
+    }
+    
+    // For debugging
+    void OnDrawGizmosSelected()
+    {
+        if (showDebugRanges)
+        {
+            // Draw player attack range
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(transform.position, attackRange);
+            
+            // Draw base attack range
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireSphere(transform.position, baseAttackRange);
+            
+            // Draw base detection range
+            Gizmos.color = Color.blue;
+            Gizmos.DrawWireSphere(transform.position, baseDetectionRange);
+            
+            // Draw line to current target
+            if (currentTransformTarget != null)
+            {
+                Gizmos.color = (isAggroOnPlayer) ? Color.red : Color.green;
+                Gizmos.DrawLine(transform.position, currentTransformTarget.position);
+            }
         }
     }
 }

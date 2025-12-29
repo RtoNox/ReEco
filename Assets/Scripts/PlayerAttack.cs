@@ -47,7 +47,9 @@ public class PlayerAttack : MonoBehaviour
         attackPoint.position = transform.position + (Vector3)attackDirection * 0.5f;
         
         // Detect all damageable objects in range
-        Collider2D[] hits = Physics2D.OverlapCircleAll(attackPoint.position, attackRange);
+        Collider2D[] hits = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayers);
+        
+        bool hitEnemy = false;
         
         foreach (Collider2D hit in hits)
         {
@@ -60,21 +62,31 @@ public class PlayerAttack : MonoBehaviour
                 targetable.GetTeam() != Team.Player && 
                 damageable.IsAlive())
             {
+                // Apply damage
                 damageable.TakeDamage(attackDamage);
                 Debug.Log($"Hit {hit.name} for {attackDamage} damage!");
+                
+                // Trigger enemy aggro if it's an enemy
+                EnemyAI enemyAI = hit.GetComponent<EnemyAI>();
+                if (enemyAI != null)
+                {
+                    enemyAI.OnHitByPlayer();
+                    hitEnemy = true;
+                }
             }
         }
         
         // Visual feedback
-        StartCoroutine(AttackVisual());
+        StartCoroutine(AttackVisual(hitEnemy));
     }
     
-    private System.Collections.IEnumerator AttackVisual()
+    private System.Collections.IEnumerator AttackVisual(bool hitEnemy)
     {
         SpriteRenderer weapon = attackPoint.GetComponentInChildren<SpriteRenderer>();
         if (weapon != null)
         {
-            weapon.color = Color.yellow;
+            // Change color based on whether we hit an enemy
+            weapon.color = hitEnemy ? Color.red : Color.yellow;
             yield return new WaitForSeconds(0.1f);
             weapon.color = Color.white;
         }

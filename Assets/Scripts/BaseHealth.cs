@@ -32,8 +32,14 @@ public class BaseHealth : MonoBehaviour
     
     [Header("UI References")]
     public Text healthText;
-    public GameObject gameOverPanel;
     public Text regenStatusText;
+    
+    [Header("Game Over Settings")]
+    public GameObject gameOverPanel; // Assign a UI panel in the inspector
+    public Text gameOverText;
+    public Button restartButton;
+    public Button mainMenuButton;
+    public string gameOverMessage = "BASE DESTROYED!";
     
     // References
     private Animator animator;
@@ -50,7 +56,7 @@ public class BaseHealth : MonoBehaviour
     private Collider2D[] nearbyEnemies = new Collider2D[20];
     private float lastEnemyCheckTime = 0f;
     private float enemyCheckInterval = 0.5f;
-    
+
     void Start()
     {
         // Initialize health
@@ -70,16 +76,44 @@ public class BaseHealth : MonoBehaviour
             enemyLayer = LayerMask.GetMask("Enemy");
         }
         
+        // Setup Game Over UI
+        InitializeGameOverUI();
+        
         // Update UI
         UpdateHealthUI();
         UpdateRegenStatusUI();
         
-        // Hide game over panel
-        if (gameOverPanel != null)
-            gameOverPanel.SetActive(false);
-        
         // Start regen coroutine
         StartCoroutine(RegenerationCoroutine());
+    }
+    
+    void InitializeGameOverUI()
+    {
+        // Hide game over panel at start
+        if (gameOverPanel != null)
+        {
+            gameOverPanel.SetActive(false);
+        }
+        
+        // Setup restart button
+        if (restartButton != null)
+        {
+            restartButton.onClick.RemoveAllListeners();
+            restartButton.onClick.AddListener(RestartGame);
+        }
+        
+        // Setup main menu button
+        if (mainMenuButton != null)
+        {
+            mainMenuButton.onClick.RemoveAllListeners();
+            mainMenuButton.onClick.AddListener(GoToMainMenu);
+        }
+        
+        // Set game over text
+        if (gameOverText != null)
+        {
+            gameOverText.text = gameOverMessage;
+        }
     }
     
     void Update()
@@ -303,46 +337,75 @@ public class BaseHealth : MonoBehaviour
         
         Debug.Log("Base destroyed! Game Over!");
         
-        // Play destruction sound
         if (destroyedSound != null && audioSource != null)
         {
             audioSource.PlayOneShot(destroyedSound);
         }
         
-        // Show destruction animation
         if (animator != null)
         {
             animator.SetTrigger("Destroy");
         }
         
-        // Update UI one last time
         UpdateRegenStatusUI();
         
-        // Show game over screen
-        StartCoroutine(GameOverSequence());
-        
-        // Disable functionality
-        Collider2D collider = GetComponent<Collider2D>();
-        if (collider != null)
-            collider.enabled = false;
-    }
-    
-    IEnumerator GameOverSequence()
-    {
-        // Wait for destruction animation (if any)
-        yield return new WaitForSeconds(1.5f);
-        
-        // Show game over panel
-        if (gameOverPanel != null)
+        if (GameManager.Instance != null)
         {
-            gameOverPanel.SetActive(true);
-            Time.timeScale = 0f;
+            GameManager.Instance.OnBaseDestroyed();
         }
         
-        // Disable player input
+        ShowGameOver();
+    }
+
+    void ShowGameOver()
+    {
+        Time.timeScale = 0f;
+        
         PlayerController player = FindObjectOfType<PlayerController>();
         if (player != null)
+        {
             player.enabled = false;
+        }
+        
+        DisableAllEnemies();
+    }
+    
+    void DisableAllEnemies()
+    {
+        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
+        foreach (GameObject enemy in enemies)
+        {
+            EnemyAI enemyAI = enemy.GetComponent<EnemyAI>();
+            if (enemyAI != null)
+            {
+                enemyAI.enabled = false;
+            }
+            
+            // Stop enemy movement
+            Rigidbody2D enemyRb = enemy.GetComponent<Rigidbody2D>();
+            if (enemyRb != null)
+            {
+                enemyRb.velocity = Vector2.zero;
+                enemyRb.isKinematic = true;
+            }
+        }
+    }
+    
+    // Game Over UI Button Methods
+    void RestartGame()
+    {
+        // Restart the current scene
+        Time.timeScale = 1f;
+        UnityEngine.SceneManagement.SceneManager.LoadScene(
+            UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex
+        );
+    }
+    
+    void GoToMainMenu()
+    {
+        // Load main menu scene (assumes scene 0 is main menu)
+        Time.timeScale = 1f;
+        UnityEngine.SceneManagement.SceneManager.LoadScene(0);
     }
     
     public void Heal(int amount)

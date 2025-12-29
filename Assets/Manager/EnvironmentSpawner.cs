@@ -28,10 +28,8 @@ public class EnvironmentSpawner : MonoBehaviour
 
     IEnumerator Initialize()
     {
-        // Wait for scene to load
         yield return new WaitForSeconds(1f);
         
-        // Find player
         player = GameObject.FindGameObjectWithTag("Player")?.transform;
         if (player == null)
         {
@@ -42,7 +40,6 @@ public class EnvironmentSpawner : MonoBehaviour
         }
         Debug.Log("✅ Player found: " + player.name);
 
-        // Check prefabs
         if (commonLootPrefabs.Count == 0)
         {
             Debug.LogError("❌ NO PREFABS ASSIGNED!");
@@ -52,7 +49,6 @@ public class EnvironmentSpawner : MonoBehaviour
 
         Debug.Log("✅ Prefabs found: " + commonLootPrefabs.Count);
 
-        // Start spawning
         StartCoroutine(SpawnRoutine());
         Debug.Log("🚀 Spawning started!");
     }
@@ -70,7 +66,6 @@ public class EnvironmentSpawner : MonoBehaviour
     {
         if (player == null) return;
         
-        // Clean up
         spawnedItems.RemoveAll(item => item == null);
 
         if (spawnedItems.Count >= maxSpawnedItems)
@@ -88,12 +83,10 @@ public class EnvironmentSpawner : MonoBehaviour
 
     Vector2 GetSpawnPosition()
     {
-        // Simple spawn around player (3-8 units away)
         Vector2 randomDir = Random.insideUnitCircle.normalized;
         float distance = Random.Range(3f, 8f);
         Vector2 spawnPos = (Vector2)player.position + randomDir * distance;
 
-        // Make sure it's not too close to other items
         foreach (var item in spawnedItems)
         {
             if (item != null && Vector2.Distance(spawnPos, item.transform.position) < 2f)
@@ -119,7 +112,6 @@ public class EnvironmentSpawner : MonoBehaviour
         GameObject newItem = Instantiate(prefab, position, Quaternion.identity);
         spawnedItems.Add(newItem);
 
-        // Verify the spawned item
         SpriteRenderer sr = newItem.GetComponent<SpriteRenderer>();
         if (sr == null)
         {
@@ -135,12 +127,10 @@ public class EnvironmentSpawner : MonoBehaviour
 
     void OnDrawGizmos()
     {
-        // Draw spawn area
         Gizmos.color = Color.green;
         Vector3 center = player != null ? player.position : transform.position;
         Gizmos.DrawWireCube(center, new Vector3(spawnAreaSize.x, spawnAreaSize.y, 0));
 
-        // Draw spawned items
         Gizmos.color = Color.red;
         foreach (var item in spawnedItems)
         {
