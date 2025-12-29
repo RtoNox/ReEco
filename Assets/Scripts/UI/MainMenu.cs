@@ -9,7 +9,7 @@ public class MainMenu : MonoBehaviour
     }
     public void OpenOptions()
     {
-        SceneManager.LoadScene("Options");
+        SceneManager.LoadScene("Settings");
     }
 
     public void ExitGame()
