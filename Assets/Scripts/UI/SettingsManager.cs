@@ -1,43 +1,54 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.Audio;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class SettingsManager : MonoBehaviour
 {
     public AudioMixer audioMixer;
 
-    // VOLUME
-    public void SetVolume(float volume)
+    public Slider masterSlider;
+    public Slider musicSlider;
+    public Slider sfxSlider;
+
+    void Start()
     {
-        audioMixer.SetFloat("MasterVolume", volume);
-        PlayerPrefs.SetFloat("Volume", volume);
+        audioMixer.SetFloat("MasterVolume", 0f);
+        audioMixer.SetFloat("MusicVolume", 0f);
+        audioMixer.SetFloat("SFXVolume", 0f);
+
+        masterSlider.SetValueWithoutNotify(1f);
+        musicSlider.SetValueWithoutNotify(1f);
+        sfxSlider.SetValueWithoutNotify(1f);
+
+        // Fullscreen restore
+        if (PlayerPrefs.HasKey("Fullscreen"))
+            Screen.fullScreen = PlayerPrefs.GetInt("Fullscreen") == 1;
     }
 
-    // FULLSCREEN
+    public void SetMasterVolume(float v)
+    {
+        audioMixer.SetFloat("MasterVolume", Mathf.Lerp(-20f, 0f, v));
+    }
+
+    public void SetMusicVolume(float v)
+    {
+        audioMixer.SetFloat("MusicVolume", Mathf.Lerp(-20f, 0f, v));
+    }
+
+    public void SetSFXVolume(float v)
+    {
+        audioMixer.SetFloat("SFXVolume", Mathf.Lerp(-20f, 0f, v));
+    }
+
     public void SetFullscreen(bool isFullscreen)
     {
         Screen.fullScreen = isFullscreen;
         PlayerPrefs.SetInt("Fullscreen", isFullscreen ? 1 : 0);
     }
 
-    // BACK TO MENU
     public void BackToMenu()
     {
         SceneManager.LoadScene("MainMenu");
-    }
-
-    void Start()
-    {
-        // Load saved settings
-        if (PlayerPrefs.HasKey("Volume"))
-        {
-            float volume = PlayerPrefs.GetFloat("Volume");
-            audioMixer.SetFloat("MasterVolume", volume);
-        }
-
-        if (PlayerPrefs.HasKey("Fullscreen"))
-        {
-            Screen.fullScreen = PlayerPrefs.GetInt("Fullscreen") == 1;
-        }
     }
 }
