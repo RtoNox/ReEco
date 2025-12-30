@@ -276,14 +276,14 @@ public class EnemySpawner : MonoBehaviour
             }
         }
 
-        Collider2D[] colliders = Physics2D.OverlapCircleAll(spawnPos, 1f);
-        foreach (Collider2D collider in colliders)
-        {
-            if (collider.CompareTag("Wall") || collider.CompareTag("Obstacle"))
-            {
-                return false;
-            }
-        }
+        // Collider2D[] colliders = Physics2D.OverlapCircleAll(spawnPos, 1f);
+        // foreach (Collider2D collider in colliders)
+        // {
+        //     if (collider.CompareTag("Wall") || collider.CompareTag("Obstacle"))
+        //     {
+        //         return false;
+        //     }
+        // }
 
         return true;
     }

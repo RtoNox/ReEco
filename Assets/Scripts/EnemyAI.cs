@@ -4,25 +4,34 @@ using UnityEngine;
 
 public class EnemyAI : MonoBehaviour
 {
+    [Header("Base Stats (Unscaled)")]
+    public float baseMoveSpeed = 2f;
+    public int baseMaxHealth = 50;
+    public int baseDamage = 10;
+    public int baseAttackDamage = 10;
+    
+    [Header("Current Stats (Scaled)")]
+    public float currentMoveSpeed;
+    public int currentMaxHealth;
+    public int currentDamage;
+    public int currentAttackDamage;
+    
     [Header("AI Settings")]
-    public float moveSpeed = 2f;
     public float attackRange = 1.5f;
-    public int damage = 10;
     public float attackCooldown = 1f;
     
     [Header("Base Targeting")]
     public float baseAttackRange = 1.5f;
-    public int baseDamage = 20;
-    public float baseDetectionRange = 15f; // How far enemy can detect base
+    public int baseDamageToBase = 20;
+    public float baseDetectionRange = 15f;
     
     [Header("Target Switching")]
-    public float playerAggroDuration = 5f; // How long to chase player after being hit
+    public float playerAggroDuration = 5f;
     public bool showDebugRanges = false;
     
     // Target references
     private Transform player;
     private Transform baseTarget;
-    private IDamageable currentTarget;
     private Transform currentTransformTarget;
     private float lastAttackTime;
     
@@ -30,6 +39,12 @@ public class EnemyAI : MonoBehaviour
     private float playerAggroTimer = 0f;
     private bool isAggroOnPlayer = false;
     private bool baseIsVisible = false;
+    
+    // For sprite flipping
+    private SpriteRenderer spriteRenderer;
+    
+    // Health reference
+    private EnemyHealth enemyHealth;
     
     void Start()
     {
@@ -43,12 +58,25 @@ public class EnemyAI : MonoBehaviour
             baseTarget = baseObj.transform;
         }
         
-        // Set initial target (will be updated in Update)
+        // Get components
+        spriteRenderer = GetComponent<SpriteRenderer>();
+        enemyHealth = GetComponent<EnemyHealth>();
+        
+        // Set initial target
         currentTransformTarget = player;
+        
+        // Apply scaling
+        ApplyScaling();
+        
+        // Ensure no rotation
+        LockRotation();
     }
     
     void Update()
     {
+        // Update scaling in real-time
+        UpdateScaling();
+        
         // Update aggro timer
         if (isAggroOnPlayer)
         {
@@ -62,7 +90,7 @@ public class EnemyAI : MonoBehaviour
         // Check if base is visible on screen
         CheckBaseVisibility();
         
-        // Determine current target based on priority
+        // Determine current target
         DetermineTarget();
         
         // If no valid target, do nothing
@@ -76,7 +104,10 @@ public class EnemyAI : MonoBehaviour
         {
             // Move toward target
             Vector2 direction = (currentTransformTarget.position - transform.position).normalized;
-            transform.position += (Vector3)direction * moveSpeed * Time.deltaTime;
+            transform.position += (Vector3)direction * currentMoveSpeed * Time.deltaTime;
+            
+            // Face the target
+            FaceTarget(direction.x);
         }
         else if (Time.time >= lastAttackTime + attackCooldown)
         {
@@ -84,6 +115,64 @@ public class EnemyAI : MonoBehaviour
             AttackCurrentTarget();
             lastAttackTime = Time.time;
         }
+        
+        // Constantly lock rotation
+        LockRotation();
+    }
+    
+    void UpdateScaling()
+    {
+        if (EnemyScalingManager.Instance != null)
+        {
+            // Update speed in real-time
+            currentMoveSpeed = EnemyScalingManager.Instance.GetScaledSpeed(baseMoveSpeed);
+            
+            // Update damage in real-time
+            currentDamage = EnemyScalingManager.Instance.GetScaledAttack(baseDamage);
+            currentAttackDamage = EnemyScalingManager.Instance.GetScaledAttack(baseAttackDamage);
+        }
+    }
+    
+    void ApplyScaling()
+    {
+        if (EnemyScalingManager.Instance != null)
+        {
+            // Get scaled values from manager
+            currentMoveSpeed = EnemyScalingManager.Instance.GetScaledSpeed(baseMoveSpeed);
+            currentDamage = EnemyScalingManager.Instance.GetScaledAttack(baseDamage);
+            currentAttackDamage = EnemyScalingManager.Instance.GetScaledAttack(baseAttackDamage);
+            
+            // Update health if EnemyHealth component exists
+            if (enemyHealth != null)
+            {
+                currentMaxHealth = EnemyScalingManager.Instance.GetScaledHP(baseMaxHealth);
+                enemyHealth.baseMaxHealth = baseMaxHealth;
+            }
+            
+            Debug.Log($"Enemy scaled: Speed={currentMoveSpeed:F1}, HP={currentMaxHealth}, DMG={currentDamage}");
+        }
+        else
+        {
+            // Use base stats if no scaling manager
+            currentMoveSpeed = baseMoveSpeed;
+            currentMaxHealth = baseMaxHealth;
+            currentDamage = baseDamage;
+            currentAttackDamage = baseAttackDamage;
+        }
+    }
+    
+    void LockRotation()
+    {
+        // Force zero rotation - no rotation at all
+        transform.rotation = Quaternion.identity;
+    }
+    
+    void FaceTarget(float directionX)
+    {
+        if (spriteRenderer == null) return;
+        
+        // Flip sprite based on horizontal direction
+        spriteRenderer.flipX = directionX < 0;
     }
     
     void CheckBaseVisibility()
@@ -96,10 +185,13 @@ public class EnemyAI : MonoBehaviour
         float distanceToBase = Vector2.Distance(transform.position, baseTarget.position);
         if (distanceToBase > baseDetectionRange) return;
         
-        // Check if base is within screen bounds (simplified check)
-        Vector3 screenPoint = Camera.main.WorldToViewportPoint(baseTarget.position);
-        baseIsVisible = (screenPoint.x >= 0 && screenPoint.x <= 1 && 
-                        screenPoint.y >= 0 && screenPoint.y <= 1);
+        // Check if base is within screen bounds
+        if (Camera.main != null)
+        {
+            Vector3 screenPoint = Camera.main.WorldToViewportPoint(baseTarget.position);
+            baseIsVisible = (screenPoint.x >= 0 && screenPoint.x <= 1 && 
+                            screenPoint.y >= 0 && screenPoint.y <= 1);
+        }
     }
     
     void DetermineTarget()
@@ -130,7 +222,7 @@ public class EnemyAI : MonoBehaviour
             IDamageable damageable = currentTransformTarget.GetComponent<IDamageable>();
             if (damageable != null && damageable.IsAlive())
             {
-                damageable.TakeDamage(damage);
+                damageable.TakeDamage(currentAttackDamage);
                 Debug.Log("Enemy attacked player!");
             }
         }
@@ -140,7 +232,8 @@ public class EnemyAI : MonoBehaviour
             BaseHealth baseHealth = baseTarget.GetComponent<BaseHealth>();
             if (baseHealth != null)
             {
-                baseHealth.TakeDamage(baseDamage);
+                int damageToBase = Mathf.RoundToInt(currentAttackDamage * 1.5f);
+                baseHealth.TakeDamage(damageToBase);
                 Debug.Log("Enemy attacked base!");
             }
         }
@@ -175,7 +268,9 @@ public class EnemyAI : MonoBehaviour
         if (damageable != null && damageable.IsAlive())
         {
             // Determine damage based on target
-            int collisionDamage = (collision.gameObject.CompareTag("Base")) ? baseDamage : damage / 2;
+            int collisionDamage = (collision.gameObject.CompareTag("Base")) ? 
+                Mathf.RoundToInt(currentDamage * 1.5f) : 
+                Mathf.RoundToInt(currentDamage * 0.5f);
             damageable.TakeDamage(collisionDamage);
         }
     }

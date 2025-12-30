@@ -29,7 +29,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0.000000013893098, y: -0.000000105528535, z: 0.70710605, w: -0.7071075}
   m_LocalPosition: {x: 2.32, y: 0.04265356, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.2, y: 0.3, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -75,8 +75,8 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 3625043607559282579, guid: 19fb86013d8c24d6cb8410c0aadf30fa, type: 3}
-  m_Color: {r: 0, g: 1, b: 0.67589784, a: 1}
+  m_Sprite: {fileID: 21300000, guid: 4311dd78515ef3f479d7a2a2ca51203f, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -141,6 +141,6 @@ MonoBehaviour:
   collectSound: {fileID: 0}
   floatAmplitude: 0.5
   floatSpeed: 2
-  commonColor: {r: 0.3075471, g: 1, b: 0.6845483, a: 1}
-  rareColor: {r: 0, g: 0.6354842, b: 1, a: 1}
-  epicColor: {r: 0.5259309, g: 0.3226415, b: 1, a: 1}
+  commonColor: {r: 0, g: 1, b: 0.5480225, a: 1}
+  rareColor: {r: 0, g: 0.2648983, b: 1, a: 1}
+  epicColor: {r: 1, g: 0.009989638, b: 0, a: 1}

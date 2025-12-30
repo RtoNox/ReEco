@@ -8,137 +8,101 @@ public class MenuManager : MonoBehaviour
     public GameObject pauseMenuPanel;
     
     [Header("Pause Menu References")]
-    public Text pauseMenuTitle;
     public Button continueButton;
     public Button retryButton;
     public Button mainMenuButton;
     
     [Header("Settings")]
     public KeyCode pauseKey = KeyCode.Escape;
-    public bool canPause = true;
-    
-    // Main menu scene index
-    public int mainMenuSceneIndex = 0;
-    
-    [Header("Cursor Settings")]
-    public bool alwaysShowCursor = true; // Set to true to always show cursor
     
     private bool isPaused = false;
+    private bool canPause = true;
     
-    // Singleton pattern
-    public static MenuManager Instance { get; private set; }
-    
-    void Awake()
-    {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
-        {
-            Destroy(gameObject);
-            return;
-        }
-        
-        SceneManager.sceneLoaded += OnSceneLoaded;
-    }
-    
-    void OnDestroy()
-    {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
-    }
-    
-    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    {
-        Debug.Log($"Scene loaded: {scene.name} (Index: {scene.buildIndex})");
-        
-        // Check if this is the main menu scene
-        bool isMainMenuScene = scene.buildIndex == mainMenuSceneIndex;
-        
-        if (isMainMenuScene)
-        {
-            // Don't allow pause in main menu
-            canPause = false;
-            
-            // Hide pause menu
-            if (pauseMenuPanel != null)
-                pauseMenuPanel.SetActive(false);
-            
-            // Ensure time is running
-            Time.timeScale = 1f;
-            
-            // ALWAYS show cursor in main menu
-            Cursor.visible = true;
-            Cursor.lockState = CursorLockMode.None;
-            
-            // Destroy MenuManager in main menu
-            Destroy(gameObject);
-        }
-        else
-        {
-            // Game scene loaded
-            canPause = true;
-            isPaused = false;
-            
-            // CRITICAL: Ensure time is running when scene loads
-            Time.timeScale = 1f;
-            
-            // Hide pause menu
-            if (pauseMenuPanel != null)
-                pauseMenuPanel.SetActive(false);
-            
-            // Enable player input
-            EnablePlayerInput(true);
-            
-            // CURSOR SETTINGS - Always visible during gameplay
-            if (alwaysShowCursor)
-            {
-                Cursor.visible = true;
-                Cursor.lockState = CursorLockMode.None;
-            }
-            else
-            {
-                // Traditional FPS style: hide cursor during gameplay
-                Cursor.visible = false;
-                Cursor.lockState = CursorLockMode.Locked;
-            }
-        }
-    }
+    // No singleton, no DontDestroyOnLoad
+    // Each scene will have its own MenuManager
     
     void Start()
     {
+        Debug.Log("MenuManager: Start");
+        
         InitializeButtons();
         
         // Hide pause menu on start
         if (pauseMenuPanel != null)
             pauseMenuPanel.SetActive(false);
         
-        // Initialize cursor on start
-        if (alwaysShowCursor)
-        {
-            Cursor.visible = true;
-            Cursor.lockState = CursorLockMode.None;
-        }
+        // Always show cursor
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+        
+        // Check scene
+        CheckCurrentScene();
+        
+        // Ensure time is running
+        Time.timeScale = 1f;
+    }
+    
+    void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+    
+    void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+    
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        Debug.Log($"MenuManager: Scene loaded - {scene.name}");
+        
+        // Reset everything when scene loads
+        ResetOnSceneLoad();
+    }
+    
+    void ResetOnSceneLoad()
+    {
+        Debug.Log("MenuManager: Resetting on scene load");
+        
+        isPaused = false;
+        Time.timeScale = 1f;
+        
+        if (pauseMenuPanel != null)
+            pauseMenuPanel.SetActive(false);
+        
+        CheckCurrentScene();
+        
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+        
+        // Re-enable player input
+        EnablePlayerInput(true);
+    }
+    
+    void CheckCurrentScene()
+    {
+        string sceneName = SceneManager.GetActiveScene().name;
+        canPause = !(sceneName == "MainMenu" || sceneName == "Menu");
+        Debug.Log($"MenuManager: Scene '{sceneName}' - Can pause: {canPause}");
     }
     
     void Update()
     {
-        if (Input.GetKeyDown(pauseKey) && canPause && !IsGameOver())
+        if (Input.GetKeyDown(pauseKey) && canPause && IsGameRunning())
         {
             TogglePause();
         }
     }
     
-    bool IsGameOver()
+    bool IsGameRunning()
     {
-        // Check if game is over through GameManager
-        if (GameManager.Instance == null) return false;
-        return !GameManager.Instance.isGameRunning;
+        return GameManager.Instance != null && GameManager.Instance.isGameRunning;
     }
     
     void InitializeButtons()
     {
+        Debug.Log("MenuManager: Initializing buttons");
+        
         if (continueButton != null)
         {
             continueButton.onClick.RemoveAllListeners();
@@ -158,25 +122,22 @@ public class MenuManager : MonoBehaviour
         }
     }
     
-    // =================== PAUSE MENU ===================
     public void TogglePause()
     {
-        if (IsGameOver()) return; // Can't pause when game over
+        if (!canPause) return;
         
         isPaused = !isPaused;
         
         if (isPaused)
-        {
             PauseGame();
-        }
         else
-        {
             ContinueGame();
-        }
     }
     
     public void PauseGame()
     {
+        Debug.Log("MenuManager: Pausing game");
+        
         isPaused = true;
         Time.timeScale = 0f;
         
@@ -187,19 +148,17 @@ public class MenuManager : MonoBehaviour
         if (pauseMenuPanel != null)
         {
             pauseMenuPanel.SetActive(true);
-            if (pauseMenuTitle != null)
-                pauseMenuTitle.text = "GAME PAUSED";
         }
         
-        // ALWAYS show cursor in pause menu
+        // Show cursor
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
-        
-        Debug.Log("Game Paused");
     }
     
     public void ContinueGame()
     {
+        Debug.Log("MenuManager: Continuing game");
+        
         isPaused = false;
         Time.timeScale = 1f;
         
@@ -212,106 +171,69 @@ public class MenuManager : MonoBehaviour
             pauseMenuPanel.SetActive(false);
         }
         
-        // Cursor behavior when returning to gameplay
-        if (alwaysShowCursor)
-        {
-            // Keep cursor visible
-            Cursor.visible = true;
-            Cursor.lockState = CursorLockMode.None;
-        }
-        else
-        {
-            // Hide cursor
-            Cursor.visible = false;
-            Cursor.lockState = CursorLockMode.Locked;
-        }
-        
-        Debug.Log("Game Continued");
+        // Show cursor
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
     }
     
-    // =================== BUTTON ACTIONS ===================
     public void OnRetryGame()
     {
-        Debug.Log("Retry from pause menu");
+        Debug.Log("MenuManager: Retry button clicked");
         
-        // Reset pause state
+        // Immediately reset everything
         isPaused = false;
-        
-        // CRITICAL: Unfreeze time
         Time.timeScale = 1f;
         
         // Hide pause menu immediately
         if (pauseMenuPanel != null)
             pauseMenuPanel.SetActive(false);
         
-        // Reset game state through GameManager
+        // Reset GameManager if it exists
         if (GameManager.Instance != null)
         {
             GameManager.Instance.ResetGameState();
-            GameManager.Instance.StartGame();
         }
         
-        // Enable player input
-        EnablePlayerInput(true);
+        // Show cursor
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
         
-        // Cursor on retry
-        if (alwaysShowCursor)
-        {
-            Cursor.visible = true;
-            Cursor.lockState = CursorLockMode.None;
-        }
-        
-        // Reload current scene
+        // RELOAD THE CURRENT SCENE
+        // This is the key - clean reload
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         
-        Debug.Log("Game Retry");
+        // Note: This MenuManager will be destroyed and a new one created
     }
     
     public void GoToMainMenu()
     {
-        Debug.Log("Going to main menu from pause");
+        Debug.Log("MenuManager: Main Menu button clicked");
         
-        // Reset pause state
+        // Immediately reset everything
         isPaused = false;
         Time.timeScale = 1f;
         
-        // Hide pause menu
+        // Hide pause menu immediately
         if (pauseMenuPanel != null)
             pauseMenuPanel.SetActive(false);
         
-        // Reset GameManager for fresh start
-        if (GameManager.Instance != null)
-        {
-            GameManager.Instance.ResetGameState();
-        }
+        // Show cursor
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
         
-        // Load main menu scene
-        SceneManager.LoadScene(mainMenuSceneIndex);
+        // Load main menu scene (scene 0)
+        SceneManager.LoadScene(0);
         
-        Debug.Log("Going to Main Menu");
-        
-        // MenuManager will be destroyed by OnSceneLoaded when main menu loads
+        // Note: This MenuManager will be destroyed
     }
     
-    // =================== UTILITY METHODS ===================
     void EnablePlayerInput(bool enable)
     {
         PlayerController player = FindObjectOfType<PlayerController>();
         if (player != null)
         {
             player.enabled = enable;
+            Debug.Log($"MenuManager: Player input {(enable ? "enabled" : "disabled")}");
         }
-    }
-    
-    public bool IsGamePaused()
-    {
-        return isPaused;
-    }
-    
-    // Public method to manually control cursor
-    public void SetCursorVisibility(bool visible, bool locked = false)
-    {
-        Cursor.visible = visible;
-        Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
     }
 }

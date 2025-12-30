@@ -1,23 +1,22 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class EnemyHealth : MonoBehaviour, IDamageable, ITargetable, ILootable
+public class EnemyHealth2 : MonoBehaviour, IDamageable, ITargetable, ILootable
 {
     [Header("Base Health (Unscaled)")]
-    public int baseMaxHealth = 50;
+    public int baseMaxHealth = 25;
     
     [Header("Current Stats (Scaled)")]
     public int maxHealth;
     public int currentHealth;
     
-    [Header("Enemy Settings")]
+    [Header("Enemy2 Settings")]
     public Team team = Team.Enemy;
     public GameObject deathEffect;
     
-    [Header("Loot Settings - Enemy Drops (2x Value)")]
+    [Header("Loot Settings - Enemy2 Drops")]
     public LootData[] possibleLoot;
-    public float lootDropChance = 0.9f;
+    public float lootDropChance = 0.75f;
     public LootManager lootManager;
     
     private bool isDead = false;
@@ -41,11 +40,10 @@ public class EnemyHealth : MonoBehaviour, IDamageable, ITargetable, ILootable
             int newMaxHealth = EnemyScalingManager.Instance.GetScaledHP(baseMaxHealth);
             if (newMaxHealth != maxHealth)
             {
-                // Scale current health proportionally
                 float healthPercent = (float)currentHealth / maxHealth;
                 maxHealth = newMaxHealth;
                 currentHealth = Mathf.RoundToInt(maxHealth * healthPercent);
-                Debug.Log($"Enemy HP updated: {currentHealth}/{maxHealth} ({healthPercent:P0})");
+                Debug.Log($"Enemy2 HP updated: {currentHealth}/{maxHealth} ({healthPercent:P0})");
             }
         }
     }
@@ -64,7 +62,7 @@ public class EnemyHealth : MonoBehaviour, IDamageable, ITargetable, ILootable
         currentHealth = maxHealth;
     }
     
-    // IDamageable implementation
+    // ================= IDAMAGEABLE =================
     public void TakeDamage(int damage)
     {
         if (isDead) return;
@@ -86,7 +84,6 @@ public class EnemyHealth : MonoBehaviour, IDamageable, ITargetable, ILootable
         
         DropLoot();
         
-        // Death effects
         if (deathEffect != null)
         {
             Instantiate(deathEffect, transform.position, Quaternion.identity);
@@ -100,7 +97,7 @@ public class EnemyHealth : MonoBehaviour, IDamageable, ITargetable, ILootable
         return !isDead && currentHealth > 0;
     }
     
-    // ITargetable implementation
+    // ================= ITARGETABLE =================
     public Transform GetTransform()
     {
         return transform;
@@ -116,7 +113,7 @@ public class EnemyHealth : MonoBehaviour, IDamageable, ITargetable, ILootable
         return !isDead;
     }
     
-    // ILootable implementation
+    // ================= ILOOTABLE =================
     public LootData GetLootData()
     {
         if (possibleLoot.Length == 0) return null;
@@ -125,103 +122,47 @@ public class EnemyHealth : MonoBehaviour, IDamageable, ITargetable, ILootable
     
     public void OnLootCollected()
     {
-        // Called when loot is collected (optional)
+        // Optional
     }
     
+    // ================= LOOT DROP =================
     private void DropLoot()
     {
-        Debug.Log($"=== DROP LOOT STARTED for {gameObject.name} ===");
-        
         float roll = Random.Range(0f, 1f);
-        Debug.Log($"Drop chance check: Rolled {roll:F2}, Need <= {lootDropChance}: {(roll <= lootDropChance ? "PASS" : "FAIL")}");
-        
-        if (roll > lootDropChance)
-        {
-            Debug.Log("Failed drop chance roll - no loot dropped");
-            return;
-        }
+        if (roll > lootDropChance) return;
         
         if (lootManager == null)
         {
-            Debug.LogError("LootManager is null! Cannot drop loot.");
             lootManager = FindObjectOfType<LootManager>();
-            Debug.Log($"After FindObjectOfType: LootManager = {lootManager != null}");
-            
-            if (lootManager == null)
-            {
-                // Try to find it another way
-                GameObject lootManagerObj = GameObject.Find("LootManager");
-                if (lootManagerObj != null)
-                {
-                    lootManager = lootManagerObj.GetComponent<LootManager>();
-                    Debug.Log($"Found by name: LootManager = {lootManager != null}");
-                }
-            }
-            
-            if (lootManager == null) 
-            {
-                Debug.LogError("STILL no LootManager found! Check if it's in the scene.");
-                return;
-            }
+            if (lootManager == null) return;
         }
         
-        Debug.Log($"LootManager found: {lootManager.gameObject.name}");
-        
-        // Get loot data
         LootData lootData = lootManager.GetRandomLoot();
-        Debug.Log($"GetRandomLoot returned: {(lootData != null ? lootData.lootName : "NULL")}");
+        if (lootData == null || lootData.lootPrefab == null) return;
         
-        if (lootData == null)
-        {
-            Debug.LogError("LootManager.GetRandomLoot() returned null!");
-            return;
-        }
-        
-        Debug.Log($"LootData: {lootData.lootName} (Tier: {lootData.lootTier})");
-        Debug.Log($"Loot prefab: {(lootData.lootPrefab != null ? "Exists" : "NULL!")}");
-        
-        if (lootData.lootPrefab == null)
-        {
-            Debug.LogError("LootData.lootPrefab is null! Check LootManager settings.");
-            return;
-        }
-        
-        // Calculate drop position
         Vector3 dropPosition = transform.position;
         dropPosition.x += Random.Range(-0.5f, 0.5f);
         dropPosition.y += Random.Range(-0.5f, 0.5f);
         
-        Debug.Log($"Instantiating loot at position: {dropPosition}");
+        GameObject lootObject = Instantiate(
+            lootData.lootPrefab,
+            dropPosition,
+            Quaternion.identity
+        );
         
-        // Instantiate the loot
-        GameObject lootObject = Instantiate(lootData.lootPrefab, dropPosition, Quaternion.identity);
-        Debug.Log($"Instantiated loot object: {lootObject.name}");
-        
-        // Get CollectibleItem component
         CollectibleItem collectible = lootObject.GetComponent<CollectibleItem>();
-        Debug.Log($"CollectibleItem component: {(collectible != null ? "Found" : "NOT FOUND")}");
-        
         if (collectible != null)
         {
             int baseValue = lootData.GetCalculatedValue();
-            int enemyValue = baseValue * 2;
-            
             collectible.lootTier = lootData.lootTier;
-            collectible.value = enemyValue;
+            collectible.value = baseValue * 2;
             collectible.itemName = lootData.lootName;
             collectible.isEnvironmentSpawn = false;
-            
-            Debug.Log($"Configured loot: {collectible.lootTier} {collectible.itemName} worth {collectible.value} coins");
         }
-        else
-        {
-            Debug.LogError($"Loot prefab {lootData.lootPrefab.name} doesn't have CollectibleItem component!");
-        }
-        
-        Debug.Log($"=== DROP LOOT COMPLETED ===");
     }
     
-    private System.Collections.IEnumerator DamageFlash()
+    // ================= DAMAGE FLASH =================
+    private IEnumerator DamageFlash()
     {
         SpriteRenderer sprite = GetComponent<SpriteRenderer>();
         if (sprite != null)
