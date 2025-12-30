@@ -535,6 +535,119 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 420303542}
   m_CullTransparentMesh: 1
+--- !u!1 &1167746583
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1167746585}
+  - component: {fileID: 1167746584}
+  m_Layer: 0
+  m_Name: AudioManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1167746584
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1167746583}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c90d9296e0c121418d568bc6931df1c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  audioMixer: {fileID: 24100000, guid: 23c26d1f552a3c641833e01bce175104, type: 2}
+  music:
+  - name: MainMenu
+    clip: {fileID: 8300000, guid: 3502c3fb6e95b854ca2b7dcbc8e1fe4d, type: 3}
+    volume: 1
+    pitch: 0
+    loop: 1
+    source: {fileID: 0}
+  - name: MainGame
+    clip: {fileID: 8300000, guid: 57d34642dcf76894a82ad5a3f6e97415, type: 3}
+    volume: 1
+    pitch: 0
+    loop: 1
+    source: {fileID: 0}
+  sfx:
+  - name: BuyUpgrade
+    clip: {fileID: 8300000, guid: c08f1745b30bc6b4ba7ddb49961d7dc3, type: 3}
+    volume: 1
+    pitch: 0
+    loop: 0
+    source: {fileID: 0}
+  - name: Cancel
+    clip: {fileID: 8300000, guid: eca10d72a6372454f977c7060457c097, type: 3}
+    volume: 1
+    pitch: 0
+    loop: 0
+    source: {fileID: 0}
+  - name: ClosePanel
+    clip: {fileID: 8300000, guid: b7a0276e993c0e842ad96e069137f2c4, type: 3}
+    volume: 0
+    pitch: 0
+    loop: 0
+    source: {fileID: 0}
+  - name: Sell
+    clip: {fileID: 8300000, guid: e4cadba4f0743e6489b8b93e73c762d9, type: 3}
+    volume: 1
+    pitch: 0
+    loop: 0
+    source: {fileID: 0}
+  - name: PlayerHit
+    clip: {fileID: 8300000, guid: fccc0d15080eb2744a716afa1630f770, type: 3}
+    volume: 1
+    pitch: 0
+    loop: 0
+    source: {fileID: 0}
+  - name: EnemyHit
+    clip: {fileID: 8300000, guid: d1d559392cb01024a8da78e01c1821a8, type: 3}
+    volume: 1
+    pitch: 0
+    loop: 0
+    source: {fileID: 0}
+  - name: OpenPanel
+    clip: {fileID: 8300000, guid: ca5d9a4533a53ca4da66c2e21a4325d7, type: 3}
+    volume: 1
+    pitch: 0
+    loop: 0
+    source: {fileID: 0}
+  - name: Hover
+    clip: {fileID: 8300000, guid: cea6807798d9d7e4aa447bbe33d9d24d, type: 3}
+    volume: 0
+    pitch: 0
+    loop: 0
+    source: {fileID: 0}
+  - name: Click
+    clip: {fileID: 8300000, guid: f08880732c308664da0958e811e5c0b3, type: 3}
+    volume: 0
+    pitch: 0
+    loop: 0
+    source: {fileID: 0}
+--- !u!4 &1167746585
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1167746583}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 564.51483, y: 219.74695, z: -3.3677459}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1189906859
 GameObject:
   m_ObjectHideFlags: 0
@@ -1187,63 +1300,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1994107122}
   m_CullTransparentMesh: 1
---- !u!1001 &2921033247367146693
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 6937588430056129218, guid: bd927fbce6f2f8c4fad48e0c42157da3, type: 3}
-      propertyPath: m_Name
-      value: AudioManager
-      objectReference: {fileID: 0}
-    - target: {fileID: 8643774833353907157, guid: bd927fbce6f2f8c4fad48e0c42157da3, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 564.51483
-      objectReference: {fileID: 0}
-    - target: {fileID: 8643774833353907157, guid: bd927fbce6f2f8c4fad48e0c42157da3, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 219.74695
-      objectReference: {fileID: 0}
-    - target: {fileID: 8643774833353907157, guid: bd927fbce6f2f8c4fad48e0c42157da3, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -3.3677459
-      objectReference: {fileID: 0}
-    - target: {fileID: 8643774833353907157, guid: bd927fbce6f2f8c4fad48e0c42157da3, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8643774833353907157, guid: bd927fbce6f2f8c4fad48e0c42157da3, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8643774833353907157, guid: bd927fbce6f2f8c4fad48e0c42157da3, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8643774833353907157, guid: bd927fbce6f2f8c4fad48e0c42157da3, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8643774833353907157, guid: bd927fbce6f2f8c4fad48e0c42157da3, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8643774833353907157, guid: bd927fbce6f2f8c4fad48e0c42157da3, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8643774833353907157, guid: bd927fbce6f2f8c4fad48e0c42157da3, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: bd927fbce6f2f8c4fad48e0c42157da3, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -1252,4 +1308,4 @@ SceneRoots:
   - {fileID: 1200817585}
   - {fileID: 337293051}
   - {fileID: 1346027079}
-  - {fileID: 2921033247367146693}
+  - {fileID: 1167746585}
