@@ -6443,6 +6443,30 @@ PrefabInstance:
       propertyPath: m_SortingOrder
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 6018189036299333318, guid: 4ddadf972289b4a47b93cbe9e4750a81, type: 3}
+      propertyPath: playerBack
+      value: 
+      objectReference: {fileID: 21300000, guid: 3591e4851ff48cd4c90f5c5972030a43, type: 3}
+    - target: {fileID: 6018189036299333318, guid: 4ddadf972289b4a47b93cbe9e4750a81, type: 3}
+      propertyPath: playerLeft
+      value: 
+      objectReference: {fileID: 21300000, guid: 11f6be671c9c58842b21cb58b0982c17, type: 3}
+    - target: {fileID: 6018189036299333318, guid: 4ddadf972289b4a47b93cbe9e4750a81, type: 3}
+      propertyPath: playerFront
+      value: 
+      objectReference: {fileID: 21300000, guid: b6ad5f8df81ec644b9458a5f369d254b, type: 3}
+    - target: {fileID: 6018189036299333318, guid: 4ddadf972289b4a47b93cbe9e4750a81, type: 3}
+      propertyPath: playerRight
+      value: 
+      objectReference: {fileID: 21300000, guid: c9bf88ea89cbbfd4388bb5be6667ebeb, type: 3}
+    - target: {fileID: 6363907357351694878, guid: 4ddadf972289b4a47b93cbe9e4750a81, type: 3}
+      propertyPath: m_Size.x
+      value: 1.47
+      objectReference: {fileID: 0}
+    - target: {fileID: 6363907357351694878, guid: 4ddadf972289b4a47b93cbe9e4750a81, type: 3}
+      propertyPath: m_Size.y
+      value: 2.52
+      objectReference: {fileID: 0}
     - target: {fileID: 6961115369037464958, guid: 4ddadf972289b4a47b93cbe9e4750a81, type: 3}
       propertyPath: m_TagString
       value: PlayerWeapon
