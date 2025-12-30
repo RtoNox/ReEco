@@ -67,6 +67,12 @@ public class BaseTrigger : MonoBehaviour
     private int originalPlayerHealth = 0;
     private int originalPlayerAttack = 0;
 
+    [Header("Base Indicator")]
+    public RectTransform baseArrow;
+    public Camera mainCamera;
+    public float screenEdgePadding = 40f;
+
+
     void Start()
     {
         // RESET everything on start
@@ -83,6 +89,12 @@ public class BaseTrigger : MonoBehaviour
         }
         
         Debug.Log("BaseTrigger: All upgrades reset for new run");
+
+        if (mainCamera == null)
+            mainCamera = Camera.main;
+
+        if (baseArrow != null)
+            baseArrow.gameObject.SetActive(false);
         
         // Start coroutine to update base health UI
         StartCoroutine(UpdateBaseHealthUICoroutine());
@@ -117,6 +129,54 @@ public class BaseTrigger : MonoBehaviour
         {
             CloseMenu();
         }
+        UpdateBaseArrow();
+    }
+
+    void UpdateBaseArrow()
+    {
+        if (baseArrow == null || mainCamera == null) return;
+
+        Vector3 viewportPos = mainCamera.WorldToViewportPoint(transform.position);
+
+        // Check if base is on screen
+        bool isOnScreen =
+            viewportPos.z > 0 &&
+            viewportPos.x > 0 && viewportPos.x < 1 &&
+            viewportPos.y > 0 && viewportPos.y < 1;
+
+        if (isOnScreen)
+        {
+            baseArrow.gameObject.SetActive(false);
+            return;
+        }
+
+        baseArrow.gameObject.SetActive(true);
+
+        // Convert viewport to screen position
+        Vector2 screenPos = new Vector2(
+            viewportPos.x * Screen.width,
+            viewportPos.y * Screen.height
+        );
+
+        // Direction from screen center
+        Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
+        Vector2 direction = (screenPos - screenCenter).normalized;
+
+        float screenHalfWidth = Screen.width / 2f - screenEdgePadding;
+        float screenHalfHeight = Screen.height / 2f - screenEdgePadding;
+
+        // Scale direction so it hits screen bounds
+        float scaleX = screenHalfWidth / Mathf.Abs(direction.x);
+        float scaleY = screenHalfHeight / Mathf.Abs(direction.y);
+        float scale = Mathf.Min(scaleX, scaleY);
+
+        Vector2 edgePosition = screenCenter + direction * scale;
+        baseArrow.position = edgePosition;
+
+
+        // Rotate arrow to face base
+        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+        baseArrow.rotation = Quaternion.Euler(0, 0, angle - 90f);
     }
 
     void OnTriggerEnter2D(Collider2D other)

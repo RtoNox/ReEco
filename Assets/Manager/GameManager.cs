@@ -47,60 +47,105 @@ public class GameManager : MonoBehaviour
     
     public static GameManager Instance { get; private set; }
     
+    private bool sceneLoadedEventSubscribed = false;
+    
     void Awake()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
+        if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
+            return;
         }
         
-        SceneManager.sceneLoaded += OnSceneLoaded;
-        
-        // Load best time from PlayerPrefs
-        LoadBestTime();
+        Instance = this;
     }
     
     void OnDestroy()
     {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
+        // Clean up scene loaded event
+        if (sceneLoadedEventSubscribed)
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+            sceneLoadedEventSubscribed = false;
+            Debug.Log("GameManager: Scene loaded event unsubscribed");
+        }
     }
     
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        ResetGameState();
-        FindUIReferences();
+        Debug.Log($"GameManager: Scene loaded - {scene.name}");
+        
+        // Check if this is main menu
+        if (scene.name == "MainMenu" || scene.buildIndex == 0)
+        {
+            Debug.Log("GameManager: In main menu, resetting state");
+            ResetGameStateForMenu();
+        }
+        else
+        {
+            Debug.Log("GameManager: In game scene, starting new game");
+            // Don't auto-reset here, let the scene setup handle it
+            // Just ensure UI references are found
+            FindUIReferences();
+        }
     }
     
     void Start()
     {
-        FindUIReferences();
-        StartGame();
+        Debug.Log("GameManager: Start called");
+        
+        // Only auto-start if we're in a game scene
+        string currentScene = SceneManager.GetActiveScene().name;
+        if (currentScene != "MainMenu" && currentScene != "Menu")
+        {
+            FindUIReferences();
+            StartGame();
+        }
     }
     
     void FindUIReferences()
     {
+        Debug.Log("GameManager: Finding UI references");
+        
         // Try to find UI references in the scene
         if (timerText == null)
         {
             GameObject timerGO = GameObject.Find("TimerText");
-            if (timerGO != null) timerText = timerGO.GetComponent<Text>();
+            if (timerGO != null) 
+            {
+                timerText = timerGO.GetComponent<Text>();
+                Debug.Log("GameManager: Found TimerText");
+            }
         }
         
         if (gameOverTimeText == null)
         {
             GameObject gameOverTimeGO = GameObject.Find("GameOverTimeText");
-            if (gameOverTimeGO != null) gameOverTimeText = gameOverTimeGO.GetComponent<Text>();
+            if (gameOverTimeGO != null) 
+            {
+                gameOverTimeText = gameOverTimeGO.GetComponent<Text>();
+                Debug.Log("GameManager: Found GameOverTimeText");
+            }
         }
         
         if (bestTimeText == null)
         {
             GameObject bestTimeGO = GameObject.Find("BestTimeText");
-            if (bestTimeGO != null) bestTimeText = bestTimeGO.GetComponent<Text>();
+            if (bestTimeGO != null) 
+            {
+                bestTimeText = bestTimeGO.GetComponent<Text>();
+                Debug.Log("GameManager: Found BestTimeText");
+            }
+        }
+        
+        if (gameOverPanel == null)
+        {
+            gameOverPanel = GameObject.Find("GameOverPanel");
+            if (gameOverPanel != null)
+            {
+                Debug.Log("GameManager: Found GameOverPanel");
+                gameOverPanel.SetActive(false);
+            }
         }
     }
     
@@ -140,12 +185,23 @@ public class GameManager : MonoBehaviour
     }
     
     // =================== GAME OVER HANDLING ===================
-    public void ShowGameOver()
+    public void ShowGameOver(string reason = "")
     {
+        Debug.Log($"GameManager: ShowGameOver called - {reason}");
+        
         StopGame();
         UpdateBestTime();
-        UpdateGameOverPanel();
+        
+        // Show game over panel
+        if (gameOverPanel != null)
+        {
+            gameOverPanel.SetActive(true);
+            UpdateGameOverPanel(reason);
+        }
+        
         OnPlayerDied?.Invoke();
+        
+        Debug.Log("Game Over sequence complete");
     }
     
     void UpdateBestTime()
@@ -158,7 +214,7 @@ public class GameManager : MonoBehaviour
         }
     }
     
-    void UpdateGameOverPanel()
+    void UpdateGameOverPanel(string reason)
     {
         // Update game over panel with final stats
         if (gameOverTimeText != null)
@@ -171,14 +227,14 @@ public class GameManager : MonoBehaviour
             bestTimeText.text = $"Best Time: {bestTimeFormatted}";
         }
         
-        // You could also add coins display
-        GameObject coinsTextGO = GameObject.Find("GameOverCoinsText");
-        if (coinsTextGO != null)
+        // Update reason if provided
+        GameObject reasonTextGO = GameObject.Find("GameOverReasonText");
+        if (reasonTextGO != null && !string.IsNullOrEmpty(reason))
         {
-            Text coinsText = coinsTextGO.GetComponent<Text>();
-            if (coinsText != null)
+            Text reasonText = reasonTextGO.GetComponent<Text>();
+            if (reasonText != null)
             {
-                coinsText.text = $"Coins Collected: {currentRunCoins}";
+                reasonText.text = reason;
             }
         }
     }
@@ -187,6 +243,7 @@ public class GameManager : MonoBehaviour
     {
         PlayerPrefs.SetFloat("BestTime", longestRunTime);
         PlayerPrefs.Save();
+        Debug.Log($"GameManager: Saved best time: {longestRunTime}");
     }
     
     void LoadBestTime()
@@ -195,6 +252,11 @@ public class GameManager : MonoBehaviour
         {
             longestRunTime = PlayerPrefs.GetFloat("BestTime");
             bestTimeFormatted = FormatTime(longestRunTime);
+            Debug.Log($"GameManager: Loaded best time: {longestRunTime}");
+        }
+        else
+        {
+            Debug.Log("GameManager: No best time saved yet");
         }
     }
     
@@ -208,10 +270,13 @@ public class GameManager : MonoBehaviour
     // =================== GAME STATE MANAGEMENT ===================
     public void StartGame()
     {
+        Debug.Log("GameManager: StartGame called");
+        
         isGameRunning = true;
         gameTime = 0f;
         unlockedTiers = LootTier.Common;
         currentRunCoins = 0;
+        lastMinute = 0f;
         
         // Reset timer display
         if (timerText != null)
@@ -220,9 +285,13 @@ public class GameManager : MonoBehaviour
             timerText.color = Color.white;
         }
         
-        Debug.Log("Game started - New run initialized");
+        // Hide game over panel
+        if (gameOverPanel != null)
+        {
+            gameOverPanel.SetActive(false);
+        }
         
-        ResetBaseUpgrades();
+        Debug.Log("GameManager: Game started - New run initialized");
     }
     
     public void StopGame()
@@ -237,24 +306,27 @@ public class GameManager : MonoBehaviour
         
         if (currentRunCoins > highestRunCoins)
             highestRunCoins = currentRunCoins;
+            
+        Debug.Log("GameManager: Game stopped");
     }
     
     // =================== RESET SYSTEM ===================
     public void ResetGameState()
     {
-        Debug.Log("=== RESETTING GAME STATE ===");
+        Debug.Log("GameManager: === RESETTING GAME STATE ===");
         
         Time.timeScale = 1f;
-        
         gameTime = 0f;
         unlockedTiers = LootTier.Common;
         currentRunCoins = 0;
+        lastMinute = 0f;
         
         if (gameOverPanel != null)
             gameOverPanel.SetActive(false);
         
         isGameRunning = true;
         
+        // Find and enable player components
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
         {
@@ -265,19 +337,37 @@ public class GameManager : MonoBehaviour
             PlayerAttack pa = player.GetComponent<PlayerAttack>();
             if (pa != null)
                 pa.enabled = true;
+                
+            Debug.Log("GameManager: Player components enabled");
         }
         
-        PlayerPrefs.DeleteAll();
+        // Don't delete all PlayerPrefs here - only run-specific data
+        PlayerPrefs.DeleteKey("CurrentWave");
+        PlayerPrefs.DeleteKey("CurrentScore");
         
         ResetBaseUpgrades();
-        
         ResetPlayerStats();
-        
         ClearAllLoot();
         
         OnGameReset?.Invoke();
         
-        Debug.Log("Game state reset complete - Time scale: " + Time.timeScale);
+        Debug.Log("GameManager: Game state reset complete");
+    }
+    
+    void ResetGameStateForMenu()
+    {
+        Debug.Log("GameManager: Resetting for main menu");
+        
+        // Reset basic state but don't touch scene objects
+        gameTime = 0f;
+        unlockedTiers = LootTier.Common;
+        currentRunCoins = 0;
+        isGameRunning = false;
+        Time.timeScale = 1f;
+        
+        // Hide game over panel if it exists
+        if (gameOverPanel != null)
+            gameOverPanel.SetActive(false);
     }
     
     void ResetBaseUpgrades()
@@ -294,7 +384,7 @@ public class GameManager : MonoBehaviour
             }
         }
         
-        Debug.Log($"Reset {allBases.Length} base(s)");
+        Debug.Log($"GameManager: Reset {allBases.Length} base(s)");
     }
     
     void ResetPlayerStats()
@@ -307,7 +397,7 @@ public class GameManager : MonoBehaviour
             if (pc != null)
             {
                 pc.moveSpeed = defaultPlayerSpeed;
-                Debug.Log($"Reset player speed to {defaultPlayerSpeed}");
+                Debug.Log($"GameManager: Reset player speed to {defaultPlayerSpeed}");
             }
             
             // Reset PlayerHealth
@@ -316,7 +406,7 @@ public class GameManager : MonoBehaviour
             {
                 ph.maxHealth = defaultPlayerHealth;
                 ph.currentHealth = defaultPlayerHealth;
-                Debug.Log($"Reset player health to {defaultPlayerHealth}");
+                Debug.Log($"GameManager: Reset player health to {defaultPlayerHealth}");
             }
             
             // Reset PlayerAttack
@@ -324,7 +414,7 @@ public class GameManager : MonoBehaviour
             if (pa != null)
             {
                 pa.attackDamage = defaultPlayerAttack;
-                Debug.Log($"Reset player attack to {defaultPlayerAttack}");
+                Debug.Log($"GameManager: Reset player attack to {defaultPlayerAttack}");
             }
             
             // Reset PlayerInventory
@@ -333,12 +423,12 @@ public class GameManager : MonoBehaviour
             {
                 pi.coins = 0;
                 pi.inventory.Clear();
-                Debug.Log("Reset player inventory and coins");
+                Debug.Log("GameManager: Reset player inventory and coins");
             }
         }
         else
         {
-            Debug.LogWarning("Player not found for reset");
+            Debug.LogWarning("GameManager: Player not found for reset");
         }
     }
     
@@ -352,7 +442,7 @@ public class GameManager : MonoBehaviour
         
         if (allLoot.Length > 0)
         {
-            Debug.Log($"Cleared {allLoot.Length} loot items from scene");
+            Debug.Log($"GameManager: Cleared {allLoot.Length} loot items from scene");
         }
     }
     
@@ -364,12 +454,12 @@ public class GameManager : MonoBehaviour
         if (gameTime >= epicTierUnlockTime && unlockedTiers < LootTier.Epic)
         {
             unlockedTiers = LootTier.Epic;
-            Debug.Log("EPIC tier unlocked!");
+            Debug.Log("GameManager: EPIC tier unlocked!");
         }
         else if (gameTime >= rareTierUnlockTime && unlockedTiers < LootTier.Rare)
         {
             unlockedTiers = LootTier.Rare;
-            Debug.Log("RARE tier unlocked!");
+            Debug.Log("GameManager: RARE tier unlocked!");
         }
         
         if (unlockedTiers != previousTier)
@@ -396,7 +486,7 @@ public class GameManager : MonoBehaviour
     public void AddCoins(int amount)
     {
         currentRunCoins += amount;
-        Debug.Log($"Added {amount} coins. Total this run: {currentRunCoins}");
+        Debug.Log($"GameManager: Added {amount} coins. Total this run: {currentRunCoins}");
     }
     
     public void PlayerDied()
@@ -410,24 +500,6 @@ public class GameManager : MonoBehaviour
         Debug.Log("GameManager: Base destroyed!");
         ShowGameOver("BASE DESTROYED");
     }
-
-    void ShowGameOver(string reason)
-    {
-        Debug.Log($"GameManager: Showing Game Over - {reason}");
-        
-        StopGame();
-        UpdateBestTime();
-        OnPlayerDied?.Invoke();
-        
-        Debug.Log("Game Over sequence complete");
-    }
-    
-    IEnumerator ResetAfterDelay(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        ResetGameState();
-        StartGame();
-    }
     
     // =================== PUBLIC METHODS ===================
     public int GetCurrentRunCoins() => currentRunCoins;
@@ -438,6 +510,14 @@ public class GameManager : MonoBehaviour
     public void OnPlayerDeathEvent()
     {
         PlayerDied();
+    }
+    
+    // Clean reset for scene reload
+    public void CleanResetForNewScene()
+    {
+        Debug.Log("GameManager: Clean reset for new scene");
+        ResetGameState();
+        StartGame();
     }
 }
 

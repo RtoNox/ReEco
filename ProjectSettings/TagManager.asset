@@ -6,6 +6,10 @@ TagManager:
   tags:
   - Enemy
   - Base
+  - PlayerWeapon
+  - SpawnPoint
+  - Obstacle
+  - LootManager
   layers:
   - Default
   - TransparentFX

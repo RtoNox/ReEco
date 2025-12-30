@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerAttack : MonoBehaviour
@@ -12,6 +11,10 @@ public class PlayerAttack : MonoBehaviour
     
     [Header("References")]
     public Transform attackPoint;
+    
+    [Header("Visual Feedback")]
+    public GameObject attackCirclePrefab; // Assign a circle sprite GameObject
+    public float circleDisplayTime = 0.2f;
     
     private float nextAttackTime = 0f;
     private PlayerController playerController;
@@ -46,6 +49,9 @@ public class PlayerAttack : MonoBehaviour
         Vector2 attackDirection = playerController.GetAimDirection();
         attackPoint.position = transform.position + (Vector3)attackDirection * 0.5f;
         
+        // Create visual feedback
+        StartCoroutine(ShowAttackCircle());
+        
         // Detect all damageable objects in range
         Collider2D[] hits = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayers);
         
@@ -53,20 +59,16 @@ public class PlayerAttack : MonoBehaviour
         
         foreach (Collider2D hit in hits)
         {
-            // Use interface instead of specific component
             IDamageable damageable = hit.GetComponent<IDamageable>();
             ITargetable targetable = hit.GetComponent<ITargetable>();
             
-            // Check if it's damageable, targetable, and not on our team
             if (damageable != null && targetable != null && 
                 targetable.GetTeam() != Team.Player && 
                 damageable.IsAlive())
             {
-                // Apply damage
                 damageable.TakeDamage(attackDamage);
                 Debug.Log($"Hit {hit.name} for {attackDamage} damage!");
                 
-                // Trigger enemy aggro if it's an enemy
                 EnemyAI enemyAI = hit.GetComponent<EnemyAI>();
                 if (enemyAI != null)
                 {
@@ -76,28 +78,54 @@ public class PlayerAttack : MonoBehaviour
             }
         }
         
-        // Visual feedback
-        StartCoroutine(AttackVisual(hitEnemy));
+        // Weapon color feedback
+        StartCoroutine(WeaponColorFeedback(hitEnemy));
     }
     
-    private System.Collections.IEnumerator AttackVisual(bool hitEnemy)
+    private IEnumerator ShowAttackCircle()
+    {
+        if (attackCirclePrefab != null)
+        {
+            // Create the circle
+            GameObject circle = Instantiate(attackCirclePrefab, attackPoint.position, Quaternion.identity);
+            
+            // Scale it to match attack range
+            float scale = attackRange * 2; // Assuming sprite is 1 unit diameter
+            circle.transform.localScale = new Vector3(scale, scale, 1);
+            
+            // Fade out effect
+            SpriteRenderer circleRenderer = circle.GetComponent<SpriteRenderer>();
+            if (circleRenderer != null)
+            {
+                Color originalColor = circleRenderer.color;
+                float timer = 0;
+                
+                while (timer < circleDisplayTime)
+                {
+                    timer += Time.deltaTime;
+                    float alpha = Mathf.Lerp(1f, 0f, timer / circleDisplayTime);
+                    circleRenderer.color = new Color(originalColor.r, originalColor.g, originalColor.b, alpha);
+                    yield return null;
+                }
+            }
+            else
+            {
+                // Just wait and destroy if no sprite renderer
+                yield return new WaitForSeconds(circleDisplayTime);
+            }
+            
+            Destroy(circle);
+        }
+    }
+    
+    private IEnumerator WeaponColorFeedback(bool hitEnemy)
     {
         SpriteRenderer weapon = attackPoint.GetComponentInChildren<SpriteRenderer>();
         if (weapon != null)
         {
-            // Change color based on whether we hit an enemy
             weapon.color = hitEnemy ? Color.red : Color.yellow;
             yield return new WaitForSeconds(0.1f);
             weapon.color = Color.white;
-        }
-    }
-    
-    void OnDrawGizmosSelected()
-    {
-        if (attackPoint != null)
-        {
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(attackPoint.position, attackRange);
         }
     }
 }
