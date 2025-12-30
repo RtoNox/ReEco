@@ -100,12 +100,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ba45d06e39a46ae4aac8dbe2b126e184, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 2
+  baseMoveSpeed: 2
+  baseMaxHealth: 50
+  baseDamage: 20
+  baseAttackDamage: 10
+  currentMoveSpeed: 0
+  currentMaxHealth: 0
+  currentDamage: 0
+  currentAttackDamage: 0
   attackRange: 1.5
-  damage: 10
   attackCooldown: 1
   baseAttackRange: 1.5
-  baseDamage: 20
+  baseDamageToBase: 20
   baseDetectionRange: 15
   playerAggroDuration: 5
   showDebugRanges: 0
@@ -121,6 +127,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39bf07a1ecabd7149988393b032f79a5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  baseMaxHealth: 50
   maxHealth: 50
   currentHealth: 50
   team: 1
@@ -190,7 +197,7 @@ MonoBehaviour:
     dropChance: 5
     spawnWeight: 2
   lootDropChance: 1
-  lootManager: {fileID: 0}
+  lootManager: {fileID: -7309150922745355807}
 --- !u!58 &-219322437134958119
 CircleCollider2D:
   m_ObjectHideFlags: 0
